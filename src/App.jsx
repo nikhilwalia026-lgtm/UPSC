@@ -30,39 +30,45 @@ function App() {
   const [settings, setSettings] = useState({ examDate: '2026-05-31', newCardsPerDay: 5 });
   const [history, setHistory] = useState({});
   const [streak, setStreak] = useState({ count: 0, lastDate: null });
-  const loadData = () => {
-    const loadedSubjects = Data.get(KEYS.subjects);
+  const loadData = async () => {
+    const loadedSubjects = await Data.get(KEYS.subjects, []);
     setSubjects(loadedSubjects);
-    setTopics(Data.get(KEYS.topics));
-    const loadedSubTopics = SM2.analyzeDifficulty(Data.get(KEYS.subTopics));
+    const loadedTopics = await Data.get(KEYS.topics, []);
+    setTopics(loadedTopics);
+    const loadedSubTopicsRaw = await Data.get(KEYS.subTopics, []);
+    const loadedSubTopics = SM2.analyzeDifficulty(loadedSubTopicsRaw);
     setSubTopics(loadedSubTopics);
-    setSettings(Data.get(KEYS.settings, { examDate: '2026-05-31', newCardsPerDay: 5 }));
-    
-    const loadedStreak = Data.get(KEYS.streak, { count: 0, lastDate: null });
+    const loadedSettings = await Data.get(KEYS.settings, { examDate: '2026-05-31', newCardsPerDay: 5 });
+    setSettings(loadedSettings);
+
+    const loadedStreak = await Data.get(KEYS.streak, { count: 0, lastDate: null });
     checkAndUpdateStreak(loadedStreak);
-    setHistory(Data.get(KEYS.history, {}));
+    const loadedHistory = await Data.get(KEYS.history, {});
+    setHistory(loadedHistory);
   };
 
   useEffect(() => {
     // Check if user session was persisted (client‑side only)
-    if (typeof window !== 'undefined') {
-      const savedUser = localStorage.getItem('upsc_current_user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        window.CURRENT_USER_ID = user.id;
-        setCurrentUser(user);
-        loadData();
+    (async () => {
+      if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('upsc_current_user');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          window.CURRENT_USER_ID = user.id;
+          setCurrentUser(user);
+          await loadData();
+        }
       }
-    }
+    })();
   }, []);
 
-  const handleLogin = (user) => {
+  const handleLogin = async (user) => {
     if (typeof window !== 'undefined') {
       window.CURRENT_USER_ID = user.id;
       localStorage.setItem('upsc_current_user', JSON.stringify(user));
     }
     setCurrentUser(user);
-    loadData();
+    await loadData();
   };
 
   const handleLogout = () => {

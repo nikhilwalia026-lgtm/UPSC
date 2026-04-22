@@ -1,3 +1,5 @@
+import { RemoteData } from './remoteData';
+
 export const KEYS = {
   subjects:  'subjects',
   topics:    'topics',
@@ -8,28 +10,34 @@ export const KEYS = {
 };
 
 export const Data = {
-  getPrefix: () => window.CURRENT_USER_ID ? `upsc_${window.CURRENT_USER_ID}_` : 'upsc_',
-  get: (key, def = []) => {
-    try {
-      const pKey = Data.getPrefix() + key;
-      let val = localStorage.getItem(pKey);
-      
-      // Auto-migrate old un-namespaced data for seamless transition
-      if (!val && window.CURRENT_USER_ID) {
-        const oldVal = localStorage.getItem('upsc_' + key);
-        if (oldVal) {
-          localStorage.setItem(pKey, oldVal);
-          val = oldVal;
-        }
-      }
-      return val ? JSON.parse(val) : def;
-    } catch (e) {
-      return def;
+  getPrefix: () => typeof window !== 'undefined' && window.CURRENT_USER_ID ? `upsc_${window.CURRENT_USER_ID}_` : 'upsc_',
+  // Async getter – tries remote first, falls back to localStorage
+  get: async (key, def = []) => {
+    if (typeof window === 'undefined') return def;
+    const userId = window.CURRENT_USER_ID;
+    if (userId) {
+      const remoteBucket = await RemoteData.load(userId);
+      if (remoteBucket && key in remoteBucket) return remoteBucket[key];
     }
+    const pKey = Data.getPrefix() + key;
+    const val = localStorage.getItem(pKey);
+    return val ? JSON.parse(val) : def;
   },
-  set: (key, val) => {
+  // Async setter – writes locally and pushes whole bucket to remote
+  set: async (key, val) => {
+    if (typeof window === 'undefined') return;
     const pKey = Data.getPrefix() + key;
     localStorage.setItem(pKey, JSON.stringify(val));
+    const userId = window.CURRENT_USER_ID;
+    if (!userId) return;
+    // Build the full payload from known KEYS
+    const payload = {};
+    Object.values(KEYS).forEach(k => {
+      const stored = localStorage.getItem(`upsc_${userId}_${k}`);
+      if (stored) payload[k] = JSON.parse(stored);
+    });
+    // Fire‑and‑forget remote sync
+    RemoteData.save(userId, payload);
   },
   generateId: () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
   getTodayStr: () => new Date().toISOString().split('T')[0]
