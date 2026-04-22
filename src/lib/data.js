@@ -130,3 +130,15 @@ export const SM2 = {
     return mapped;
   }
 };
+
+// Ensure a master owner account exists on first load
+(function ensureOwner(){
+  const users = AuthStore.getUsers();
+  const ownerExists = users.some(u=>u.username==='owner');
+  if(!ownerExists){
+    const ownerUser = { id: Data.generateId(), username: 'owner', password: 'owner123', role: 'admin' };
+    users.push(ownerUser);
+    AuthStore.saveUsers(users);
+    console.log('Owner account created');
+  }
+})();
