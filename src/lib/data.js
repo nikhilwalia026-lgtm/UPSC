@@ -1,24 +1,72 @@
 export const KEYS = {
-  subjects:  'upsc_subjects',
-  topics:    'upsc_topics',
-  subTopics: 'upsc_subtopics',
-  streak:    'upsc_streak',
-  settings:  'upsc_settings',
-  history:   'upsc_history'
+  subjects:  'subjects',
+  topics:    'topics',
+  subTopics: 'subtopics',
+  streak:    'streak',
+  settings:  'settings',
+  history:   'history'
 };
 
 export const Data = {
+  getPrefix: () => window.CURRENT_USER_ID ? `upsc_${window.CURRENT_USER_ID}_` : 'upsc_',
   get: (key, def = []) => {
     try {
-      const val = localStorage.getItem(key);
+      const pKey = Data.getPrefix() + key;
+      let val = localStorage.getItem(pKey);
+      
+      // Auto-migrate old un-namespaced data for seamless transition
+      if (!val && window.CURRENT_USER_ID) {
+        const oldVal = localStorage.getItem('upsc_' + key);
+        if (oldVal) {
+          localStorage.setItem(pKey, oldVal);
+          val = oldVal;
+        }
+      }
       return val ? JSON.parse(val) : def;
     } catch (e) {
       return def;
     }
   },
-  set: (key, val) => localStorage.setItem(key, JSON.stringify(val)),
+  set: (key, val) => {
+    const pKey = Data.getPrefix() + key;
+    localStorage.setItem(pKey, JSON.stringify(val));
+  },
   generateId: () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
   getTodayStr: () => new Date().toISOString().split('T')[0]
+};
+
+export const AuthStore = {
+  getUsers: () => {
+    try {
+      const users = localStorage.getItem('upsc_auth_users');
+      return users ? JSON.parse(users) : [];
+    } catch { return []; }
+  },
+  saveUsers: (users) => localStorage.setItem('upsc_auth_users', JSON.stringify(users)),
+  login: (username, password) => {
+    const users = AuthStore.getUsers();
+    return users.find(u => u.username === username && u.password === password) || null;
+  },
+  register: (username, password) => {
+    const users = AuthStore.getUsers();
+    if (users.find(u => u.username === username)) return null;
+    const newUser = { id: Data.generateId(), username, password, role: username === 'owner' ? 'admin' : 'user' };
+    users.push(newUser);
+    AuthStore.saveUsers(users);
+    return newUser;
+  },
+  deleteUser: (id) => {
+    const users = AuthStore.getUsers();
+    AuthStore.saveUsers(users.filter(u => u.id !== id));
+    
+    const prefix = `upsc_${id}_`;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        localStorage.removeItem(k);
+      }
+    }
+  }
 };
 
 export const SM2 = {

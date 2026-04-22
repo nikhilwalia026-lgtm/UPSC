@@ -8,8 +8,12 @@ import AddContent from './components/AddContent';
 import Browse from './components/Browse';
 import Stats from './components/Stats';
 import SettingsModal from './components/SettingsModal';
+import Auth from './components/Auth';
+import Admin from './components/Admin';
+import { LogOut, Shield } from 'lucide-react';
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [browseFilterStatus, setBrowseFilterStatus] = useState('all');
@@ -24,10 +28,9 @@ function App() {
   const [topics, setTopics] = useState([]);
   const [subTopics, setSubTopics] = useState([]);
   const [settings, setSettings] = useState({ examDate: '2026-05-31', newCardsPerDay: 5 });
-  const [streak, setStreak] = useState({ count: 0, lastDate: null });
   const [history, setHistory] = useState({});
-
-  useEffect(() => {
+  const [streak, setStreak] = useState({ count: 0, lastDate: null });
+  const loadData = () => {
     const loadedSubjects = Data.get(KEYS.subjects);
     setSubjects(loadedSubjects);
     setTopics(Data.get(KEYS.topics));
@@ -38,7 +41,33 @@ function App() {
     const loadedStreak = Data.get(KEYS.streak, { count: 0, lastDate: null });
     checkAndUpdateStreak(loadedStreak);
     setHistory(Data.get(KEYS.history, {}));
+  };
+
+  useEffect(() => {
+    // Check if user session was persisted
+    const savedUser = sessionStorage.getItem('upsc_current_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      window.CURRENT_USER_ID = user.id;
+      setCurrentUser(user);
+      loadData();
+    }
   }, []);
+
+  const handleLogin = (user) => {
+    window.CURRENT_USER_ID = user.id;
+    sessionStorage.setItem('upsc_current_user', JSON.stringify(user));
+    setCurrentUser(user);
+    loadData();
+  };
+
+  const handleLogout = () => {
+    window.CURRENT_USER_ID = null;
+    sessionStorage.removeItem('upsc_current_user');
+    setCurrentUser(null);
+    setSubjects([]); setTopics([]); setSubTopics([]); setHistory({});
+    setView('dashboard');
+  };
 
   const checkAndUpdateStreak = (currentStreak) => {
     const today = Data.getTodayStr();
@@ -63,13 +92,21 @@ function App() {
     if (newHistory) { setHistory(newHistory); Data.set(KEYS.history, newHistory); }
   };
 
-  const navItems = [
+  let navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: 'Dashboard' },
     { id: 'review', icon: <BookOpen size={20} />, label: 'Review' },
     { id: 'add', icon: <PlusSquare size={20} />, label: 'Add Content' },
     { id: 'browse', icon: <LayoutList size={20} />, label: 'Browse' },
     { id: 'stats', icon: <BarChart2 size={20} />, label: 'Stats' },
   ];
+
+  if (currentUser?.role === 'admin') {
+    navItems.push({ id: 'admin', icon: <Shield size={20} />, label: 'Admin' });
+  }
+
+  if (!currentUser) {
+    return <Auth onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex h-screen w-full max-w-[1400px] mx-auto overflow-hidden">
@@ -97,13 +134,24 @@ function App() {
             </button>
           ))}
         </nav>
-        <div className="px-4 mt-auto">
+        <div className="px-4 mt-auto space-y-2">
+          <div className="bg-black/20 p-4 rounded-xl border border-white/5 mb-4 text-center mx-2">
+            <p className="text-[10px] text-muted uppercase font-bold tracking-widest mb-1">Logged in as</p>
+            <p className="text-sm text-primary font-medium">{currentUser.username}</p>
+          </div>
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-muted hover:bg-white/5 hover:text-white transition-all font-medium border-l-2 border-transparent"
           >
             <Settings size={20} />
             <span>Settings</span>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-all font-medium border-l-2 border-transparent"
+          >
+            <LogOut size={20} />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
@@ -115,6 +163,7 @@ function App() {
         {view === 'add' && <AddContent state={{subjects, topics, subTopics}} saveData={saveData} showToast={showToast} />}
         {view === 'browse' && <Browse state={{subjects, topics, subTopics}} saveData={saveData} filterStatus={browseFilterStatus} setFilterStatus={setBrowseFilterStatus} />}
         {view === 'stats' && <Stats state={{subjects, topics, subTopics, history}} />}
+        {view === 'admin' && currentUser?.role === 'admin' && <Admin />}
       </main>
 
       {/* Toast Notification */}
