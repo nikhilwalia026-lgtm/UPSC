@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text font-sans antialiased overflow-hidden selection:bg-primary/30;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl;
+  }
+  
+  .text-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent;
+  }
+  
+  .btn {
+    @apply relative overflow-hidden font-sans cursor-pointer border-none rounded-xl px-5 py-2.5 font-medium transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-accent text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)];
+  }
+  .btn-secondary {
+    @apply bg-white/5 text-text border border-white/10 hover:bg-white/10;
+  }
+  .btn-danger {
+    @apply bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.25)];
+  }
+
+  .input-field {
+    @apply font-sans bg-black/40 text-text border border-white/10 rounded-xl p-3.5 w-full outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all mb-4;
+  }
+  
+  .badge {
+    @apply inline-block px-3 py-1 rounded-full text-[10px] font-bold tracking-wider text-white uppercase shadow-sm;
+  }
+  .badge-new { @apply bg-blue-500/20 text-blue-400 border border-blue-500/30; }
+  .badge-learning { @apply bg-amber-500/20 text-amber-400 border border-amber-500/30; }
+  .badge-review { @apply bg-teal-500/20 text-teal-400 border border-teal-500/30; }
+  .badge-mastered { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30; }
+  .badge-difficult { @apply bg-rose-500/20 text-rose-400 border border-rose-500/30; }
+}
+
+/* Flashcard 3D perspective */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
