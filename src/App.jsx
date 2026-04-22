@@ -44,26 +44,32 @@ function App() {
   };
 
   useEffect(() => {
-    // Check if user session was persisted
-    const savedUser = sessionStorage.getItem('upsc_current_user');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      window.CURRENT_USER_ID = user.id;
-      setCurrentUser(user);
-      loadData();
+    // Check if user session was persisted (client‑side only)
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('upsc_current_user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        window.CURRENT_USER_ID = user.id;
+        setCurrentUser(user);
+        loadData();
+      }
     }
   }, []);
 
   const handleLogin = (user) => {
-    window.CURRENT_USER_ID = user.id;
-    sessionStorage.setItem('upsc_current_user', JSON.stringify(user));
+    if (typeof window !== 'undefined') {
+      window.CURRENT_USER_ID = user.id;
+      localStorage.setItem('upsc_current_user', JSON.stringify(user));
+    }
     setCurrentUser(user);
     loadData();
   };
 
   const handleLogout = () => {
-    window.CURRENT_USER_ID = null;
-    sessionStorage.removeItem('upsc_current_user');
+    if (typeof window !== 'undefined') {
+      window.CURRENT_USER_ID = null;
+      localStorage.removeItem('upsc_current_user');
+    }
     setCurrentUser(null);
     setSubjects([]); setTopics([]); setSubTopics([]); setHistory({});
     setView('dashboard');
