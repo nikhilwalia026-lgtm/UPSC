@@ -8,12 +8,8 @@ import AddContent from './components/AddContent';
 import Browse from './components/Browse';
 import Stats from './components/Stats';
 import SettingsModal from './components/SettingsModal';
-import Auth from './components/Auth';
-import Admin from './components/Admin';
-import { LogOut, Shield } from 'lucide-react';
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [browseFilterStatus, setBrowseFilterStatus] = useState('all');
@@ -48,38 +44,8 @@ function App() {
   };
 
   useEffect(() => {
-    // Check if user session was persisted (client‑side only)
-    (async () => {
-      if (typeof window !== 'undefined') {
-        const savedUser = localStorage.getItem('upsc_current_user');
-        if (savedUser) {
-          const user = JSON.parse(savedUser);
-          window.CURRENT_USER_ID = user.id;
-          setCurrentUser(user);
-          await loadData();
-        }
-      }
-    })();
+    loadData();
   }, []);
-
-  const handleLogin = async (user) => {
-    if (typeof window !== 'undefined') {
-      window.CURRENT_USER_ID = user.id;
-      localStorage.setItem('upsc_current_user', JSON.stringify(user));
-    }
-    setCurrentUser(user);
-    await loadData();
-  };
-
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      window.CURRENT_USER_ID = null;
-      localStorage.removeItem('upsc_current_user');
-    }
-    setCurrentUser(null);
-    setSubjects([]); setTopics([]); setSubTopics([]); setHistory({});
-    setView('dashboard');
-  };
 
   const checkAndUpdateStreak = (currentStreak) => {
     const today = Data.getTodayStr();
@@ -112,14 +78,6 @@ function App() {
     { id: 'stats', icon: <BarChart2 size={20} />, label: 'Stats' },
   ];
 
-  if (currentUser?.role === 'admin') {
-    navItems.push({ id: 'admin', icon: <Shield size={20} />, label: 'Admin' });
-  }
-
-  if (!currentUser) {
-    return <Auth onLogin={handleLogin} />;
-  }
-
   return (
     <div className="flex h-screen w-full max-w-[1400px] mx-auto overflow-hidden">
       {/* Desktop Sidebar */}
@@ -147,23 +105,12 @@ function App() {
           ))}
         </nav>
         <div className="px-4 mt-auto space-y-2">
-          <div className="bg-black/20 p-4 rounded-xl border border-white/5 mb-4 text-center mx-2">
-            <p className="text-[10px] text-muted uppercase font-bold tracking-widest mb-1">Logged in as</p>
-            <p className="text-sm text-primary font-medium">{currentUser.username}</p>
-          </div>
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-muted hover:bg-white/5 hover:text-white transition-all font-medium border-l-2 border-transparent"
           >
             <Settings size={20} />
             <span>Settings</span>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-all font-medium border-l-2 border-transparent"
-          >
-            <LogOut size={20} />
-            <span>Sign Out</span>
           </button>
         </div>
       </aside>
@@ -175,7 +122,6 @@ function App() {
         {view === 'add' && <AddContent state={{subjects, topics, subTopics}} saveData={saveData} showToast={showToast} />}
         {view === 'browse' && <Browse state={{subjects, topics, subTopics}} saveData={saveData} filterStatus={browseFilterStatus} setFilterStatus={setBrowseFilterStatus} />}
         {view === 'stats' && <Stats state={{subjects, topics, subTopics, history}} />}
-        {view === 'admin' && currentUser?.role === 'admin' && <Admin />}
       </main>
 
       {/* Toast Notification */}

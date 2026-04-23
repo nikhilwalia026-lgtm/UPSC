@@ -10,15 +10,14 @@ export const KEYS = {
 };
 
 export const Data = {
-  getPrefix: () => typeof window !== 'undefined' && window.CURRENT_USER_ID ? `upsc_${window.CURRENT_USER_ID}_` : 'upsc_',
+  getPrefix: () => 'upsc_default_',
   // Async getter – tries remote first, falls back to localStorage
   get: async (key, def = []) => {
     if (typeof window === 'undefined') return def;
-    const userId = window.CURRENT_USER_ID;
-    if (userId) {
-      const remoteBucket = await RemoteData.load(userId);
-      if (remoteBucket && key in remoteBucket) return remoteBucket[key];
-    }
+    const userId = 'default_user';
+    const remoteBucket = await RemoteData.load(userId);
+    if (remoteBucket && key in remoteBucket) return remoteBucket[key];
+    
     const pKey = Data.getPrefix() + key;
     const val = localStorage.getItem(pKey);
     return val ? JSON.parse(val) : def;
@@ -28,12 +27,12 @@ export const Data = {
     if (typeof window === 'undefined') return;
     const pKey = Data.getPrefix() + key;
     localStorage.setItem(pKey, JSON.stringify(val));
-    const userId = window.CURRENT_USER_ID;
-    if (!userId) return;
+    
+    const userId = 'default_user';
     // Build the full payload from known KEYS
     const payload = {};
     Object.values(KEYS).forEach(k => {
-      const stored = localStorage.getItem(`upsc_${userId}_${k}`);
+      const stored = localStorage.getItem(`upsc_default_${k}`);
       if (stored) payload[k] = JSON.parse(stored);
     });
     // Fire‑and‑forget remote sync
@@ -43,39 +42,6 @@ export const Data = {
   getTodayStr: () => new Date().toISOString().split('T')[0]
 };
 
-export const AuthStore = {
-  getUsers: () => {
-    try {
-      const users = localStorage.getItem('upsc_auth_users');
-      return users ? JSON.parse(users) : [];
-    } catch { return []; }
-  },
-  saveUsers: (users) => localStorage.setItem('upsc_auth_users', JSON.stringify(users)),
-  login: (username, password) => {
-    const users = AuthStore.getUsers();
-    return users.find(u => u.username === username && u.password === password) || null;
-  },
-  register: (username, password) => {
-    const users = AuthStore.getUsers();
-    if (users.find(u => u.username === username)) return null;
-    const newUser = { id: Data.generateId(), username, password, role: username === 'owner' ? 'admin' : 'user' };
-    users.push(newUser);
-    AuthStore.saveUsers(users);
-    return newUser;
-  },
-  deleteUser: (id) => {
-    const users = AuthStore.getUsers();
-    AuthStore.saveUsers(users.filter(u => u.id !== id));
-    
-    const prefix = `upsc_${id}_`;
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(prefix)) {
-        localStorage.removeItem(k);
-      }
-    }
-  }
-};
 
 export const SM2 = {
   schedule: (subTopic, rating) => {
@@ -139,14 +105,3 @@ export const SM2 = {
   }
 };
 
-// Ensure a master owner account exists on first load
-(function ensureOwner(){
-  const users = AuthStore.getUsers();
-  const ownerExists = users.some(u=>u.username==='owner');
-  if(!ownerExists){
-    const ownerUser = { id: Data.generateId(), username: 'owner', password: 'owner123', role: 'admin' };
-    users.push(ownerUser);
-    AuthStore.saveUsers(users);
-    console.log('Owner account created');
-  }
-})();
