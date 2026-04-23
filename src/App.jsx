@@ -26,20 +26,20 @@ function App() {
   const [settings, setSettings] = useState({ examDate: '2026-05-31', newCardsPerDay: 5 });
   const [history, setHistory] = useState({});
   const [streak, setStreak] = useState({ count: 0, lastDate: null });
-  const loadData = async () => {
-    const loadedSubjects = await Data.get(KEYS.subjects, []);
+  const loadData = () => {
+    const loadedSubjects = Data.get(KEYS.subjects, []);
     setSubjects(loadedSubjects);
-    const loadedTopics = await Data.get(KEYS.topics, []);
+    const loadedTopics = Data.get(KEYS.topics, []);
     setTopics(loadedTopics);
-    const loadedSubTopicsRaw = await Data.get(KEYS.subTopics, []);
+    const loadedSubTopicsRaw = Data.get(KEYS.subTopics, []);
     const loadedSubTopics = SM2.analyzeDifficulty(loadedSubTopicsRaw);
     setSubTopics(loadedSubTopics);
-    const loadedSettings = await Data.get(KEYS.settings, { examDate: '2026-05-31', newCardsPerDay: 5 });
+    const loadedSettings = Data.get(KEYS.settings, { examDate: '2026-05-31', newCardsPerDay: 5 });
     setSettings(loadedSettings);
 
-    const loadedStreak = await Data.get(KEYS.streak, { count: 0, lastDate: null });
+    const loadedStreak = Data.get(KEYS.streak, { count: 0, lastDate: null });
     checkAndUpdateStreak(loadedStreak);
-    const loadedHistory = await Data.get(KEYS.history, {});
+    const loadedHistory = Data.get(KEYS.history, {});
     setHistory(loadedHistory);
   };
 

@@ -1,5 +1,3 @@
-import { RemoteData } from './remoteData';
-
 export const KEYS = {
   subjects:  'subjects',
   topics:    'topics',
@@ -10,33 +8,29 @@ export const KEYS = {
 };
 
 export const Data = {
-  getPrefix: () => 'upsc_default_',
-  // Async getter – tries remote first, falls back to localStorage
-  get: async (key, def = []) => {
-    if (typeof window === 'undefined') return def;
-    const userId = 'default_user';
-    const remoteBucket = await RemoteData.load(userId);
-    if (remoteBucket && key in remoteBucket) return remoteBucket[key];
-    
-    const pKey = Data.getPrefix() + key;
-    const val = localStorage.getItem(pKey);
-    return val ? JSON.parse(val) : def;
+  getPrefix: () => 'upsc_',
+  get: (key, def = []) => {
+    try {
+      const pKey = Data.getPrefix() + key;
+      let val = localStorage.getItem(pKey);
+
+      // Auto-migrate from any "default_user" or previous owner keys if they got trapped there
+      if (!val) {
+        const fallbackVal = localStorage.getItem('upsc_default_' + key) || localStorage.getItem('upsc_owner_' + key);
+        if (fallbackVal) {
+          localStorage.setItem(pKey, fallbackVal);
+          val = fallbackVal;
+        }
+      }
+
+      return val ? JSON.parse(val) : def;
+    } catch (e) {
+      return def;
+    }
   },
-  // Async setter – writes locally and pushes whole bucket to remote
-  set: async (key, val) => {
-    if (typeof window === 'undefined') return;
+  set: (key, val) => {
     const pKey = Data.getPrefix() + key;
     localStorage.setItem(pKey, JSON.stringify(val));
-    
-    const userId = 'default_user';
-    // Build the full payload from known KEYS
-    const payload = {};
-    Object.values(KEYS).forEach(k => {
-      const stored = localStorage.getItem(`upsc_default_${k}`);
-      if (stored) payload[k] = JSON.parse(stored);
-    });
-    // Fire‑and‑forget remote sync
-    RemoteData.save(userId, payload);
   },
   generateId: () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
   getTodayStr: () => new Date().toISOString().split('T')[0]
