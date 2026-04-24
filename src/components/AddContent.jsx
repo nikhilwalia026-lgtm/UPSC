@@ -64,11 +64,13 @@ export default function AddContent({ state, saveData, showToast }) {
   });
 
   const addCard = () => {
-    if (!cardSubId || !cardChapterId || !cardTopicName.trim() || !cardSubTopicName.trim()) {
-      showToast('Please fill all required fields');
+    if (!cardSubId || !cardChapterId || !cardTopicName.trim()) {
+      showToast('Please fill all required fields (Topic is required)');
       return;
     }
-    const combinedName = `${cardTopicName} — ${cardSubTopicName}`;
+    const combinedName = cardSubTopicName.trim() 
+      ? `${cardTopicName.trim()} — ${cardSubTopicName.trim()}` 
+      : cardTopicName.trim();
     const newCard = createCardObj(cardSubId, cardChapterId, combinedName, cardNotes);
     saveData(null, null, [...state.subTopics, newCard], null, null, null);
     setCardSubTopicName('');
@@ -139,7 +141,7 @@ export default function AddContent({ state, saveData, showToast }) {
                   <div className="space-y-4">
                     <h4 className="text-lg font-medium mb-2 text-white">Add Individual Content</h4>
                     <input className="input-field mb-0" value={cardTopicName} onChange={e=>setCardTopicName(e.target.value)} placeholder="Topic (e.g. Fundamental Rights)" />
-                    <input className="input-field mb-0" value={cardSubTopicName} onChange={e=>setCardSubTopicName(e.target.value)} placeholder="Sub-Topic / Question (e.g. Article 14)" />
+                    <input className="input-field mb-0" value={cardSubTopicName} onChange={e=>setCardSubTopicName(e.target.value)} placeholder="Optional: Sub-Topic / Question (e.g. Article 14)" />
                     <textarea className="input-field h-24 mb-0" value={cardNotes} onChange={e=>setCardNotes(e.target.value)} placeholder="Optional: Answer / Detailed Notes" />
                     <button className="btn btn-primary w-full flex justify-center items-center gap-2" onClick={addCard}>
                       <Plus size={18} /> Add Content
