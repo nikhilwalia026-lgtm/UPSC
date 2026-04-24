@@ -51,6 +51,12 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const executeMerge = () => {
     if (!mergeForm.name.trim() || !mergeForm.subjectId || !mergeForm.topicId) return;
     
+    const cardsToMerge = state.subTopics.filter(c => selectedCards.has(c.id));
+    const earliestReview = cardsToMerge.reduce((earliest, card) => {
+      if (!earliest) return card.nextReview;
+      return card.nextReview < earliest ? card.nextReview : earliest;
+    }, null);
+
     const newCard = {
       id: Data.generateId(),
       subjectId: mergeForm.subjectId,
@@ -58,7 +64,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       name: mergeForm.name,
       notes: mergeForm.notes,
       interval: 1, repetitions: 0, easeFactor: 2.5, 
-      nextReview: Data.getTodayStr(),
+      nextReview: earliestReview || Data.getTodayStr(),
       lastReview: null, lastRating: null, status: 'new', 
       createdAt: Data.getTodayStr()
     };
