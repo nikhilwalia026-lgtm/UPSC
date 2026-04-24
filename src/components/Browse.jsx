@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Data } from '../lib/data';
-import { Search, Filter, Trash2, Edit } from 'lucide-react';
+import { Search, Filter, Trash2, Edit, Layers } from 'lucide-react';
 
 export default function Browse({ state, saveData, filterStatus = 'all', setFilterStatus }) {
   const [search, setSearch] = useState('');
@@ -9,6 +9,68 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const [viewingCard, setViewingCard] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', notes: '', subjectId: '', topicId: '' });
+
+  const [selectedCards, setSelectedCards] = useState(new Set());
+  const [isMerging, setIsMerging] = useState(false);
+  const [mergeForm, setMergeForm] = useState({ name: '', notes: '', subjectId: '', topicId: '' });
+
+  const toggleSelection = (id, e) => {
+    e.stopPropagation();
+    const next = new Set(selectedCards);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedCards(next);
+  };
+
+  const toggleAll = () => {
+    if (selectedCards.size === filtered.length) {
+      setSelectedCards(new Set());
+    } else {
+      setSelectedCards(new Set(filtered.map(c => c.id)));
+    }
+  };
+
+  const openMergeModal = () => {
+    const cardsToMerge = state.subTopics.filter(c => selectedCards.has(c.id));
+    if (cardsToMerge.length < 2) return;
+    
+    // Sort chronologically
+    cardsToMerge.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    
+    const combinedNotes = cardsToMerge.map(c => `[${c.name}]\n${c.notes || ''}`).join('\n\n');
+    
+    setMergeForm({
+      name: cardsToMerge[0].name + ' (Merged)',
+      notes: combinedNotes,
+      subjectId: cardsToMerge[0].subjectId,
+      topicId: cardsToMerge[0].topicId
+    });
+    setIsMerging(true);
+  };
+
+  const executeMerge = () => {
+    if (!mergeForm.name.trim() || !mergeForm.subjectId || !mergeForm.topicId) return;
+    
+    const newCard = {
+      id: Data.generateId(),
+      subjectId: mergeForm.subjectId,
+      topicId: mergeForm.topicId,
+      name: mergeForm.name,
+      notes: mergeForm.notes,
+      interval: 1, repetitions: 0, easeFactor: 2.5, 
+      nextReview: Data.getTodayStr(),
+      lastReview: null, lastRating: null, status: 'new', 
+      createdAt: Data.getTodayStr()
+    };
+    
+    // Keep cards that are NOT in selectedCards, and add the new merged card
+    const newCards = state.subTopics.filter(c => !selectedCards.has(c.id));
+    newCards.push(newCard);
+    
+    saveData(null, null, newCards, null, null, null);
+    setSelectedCards(new Set());
+    setIsMerging(false);
+  };
 
   const saveEdit = () => {
     if (!editForm.name.trim() || !editForm.subjectId || !editForm.topicId) return;
@@ -99,6 +161,15 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       {/* Results Meta */}
       <div className="flex justify-between items-center px-2">
         <span className="text-sm font-medium text-white/70">Showing {filtered.length} card{filtered.length !== 1 ? 's' : ''}</span>
+        {selectedCards.size > 1 && (
+          <button 
+            onClick={openMergeModal}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            <Layers size={16} />
+            Merge {selectedCards.size} Selected
+          </button>
+        )}
       </div>
 
       {/* Data Table */}
@@ -107,6 +178,9 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-muted text-xs uppercase tracking-widest font-bold">
+                <th className="p-5 w-12">
+                  <input type="checkbox" checked={filtered.length > 0 && selectedCards.size === filtered.length} onChange={toggleAll} className="w-4 h-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary/50 cursor-pointer" />
+                </th>
                 <th className="p-5 whitespace-nowrap">Subject</th>
                 <th className="p-5 whitespace-nowrap">Chapter</th>
                 <th className="p-5 w-full">Card Name</th>
@@ -129,6 +203,9 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                     className="hover:bg-white/5 transition-colors group cursor-pointer"
                     onClick={() => setViewingCard(card)}
                   >
+                    <td className="p-5" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedCards.has(card.id)} onChange={(e) => toggleSelection(card.id, e)} className="w-4 h-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary/50 cursor-pointer" />
+                    </td>
                     <td className="p-5 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <span className="w-2 h-2 rounded-full" style={{backgroundColor: sub.color}}></span>
@@ -157,7 +234,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-12 text-center">
+                  <td colSpan={7} className="p-12 text-center">
                     <div className="flex flex-col items-center justify-center text-muted">
                       <Search size={32} className="mb-4 opacity-20" />
                       <p className="text-lg">No cards found</p>
@@ -274,6 +351,73 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
           </div>
         );
       })()}
+
+      {isMerging && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in fade-in" onClick={() => setIsMerging(false)}>
+          <div 
+            className="glass-panel p-10 rounded-[2rem] w-full max-w-2xl max-h-[85vh] overflow-y-auto custom-scrollbar border border-white/20 shadow-2xl relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-muted hover:text-white"
+              onClick={() => setIsMerging(false)}
+            >
+              ✕
+            </button>
+            
+            <div className="space-y-4 pr-6">
+              <h3 className="text-2xl font-display text-white mb-6">Merge Cards</h3>
+              <p className="text-sm text-muted mb-4">You are merging {selectedCards.size} cards. The old cards will be deleted and replaced with this single card.</p>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Subject</label>
+                  <select 
+                    value={mergeForm.subjectId} 
+                    onChange={e => {
+                      const newSubId = e.target.value;
+                      const firstTopic = state.topics.find(t => t.subjectId === newSubId);
+                      setMergeForm({...mergeForm, subjectId: newSubId, topicId: firstTopic ? firstTopic.id : ''});
+                    }}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    {state.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Topic</label>
+                  <select 
+                    value={mergeForm.topicId} 
+                    onChange={e => setMergeForm({...mergeForm, topicId: e.target.value})}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    {state.topics.filter(t => t.subjectId === mergeForm.subjectId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Merged Card Name</label>
+                <input 
+                  value={mergeForm.name} 
+                  onChange={e => setMergeForm({...mergeForm, name: e.target.value})}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Merged Notes</label>
+                <textarea 
+                  value={mergeForm.notes} 
+                  onChange={e => setMergeForm({...mergeForm, notes: e.target.value})}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white h-48 focus:outline-none focus:border-primary/50 transition-colors custom-scrollbar"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button onClick={() => setIsMerging(false)} className="px-5 py-2.5 rounded-xl font-medium text-muted hover:bg-white/5 transition-colors">Cancel</button>
+                <button onClick={executeMerge} className="px-5 py-2.5 rounded-xl font-medium bg-primary text-white hover:bg-primary/90 transition-colors">Confirm Merge</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </motion.div>
   );
