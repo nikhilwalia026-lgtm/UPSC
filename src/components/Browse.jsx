@@ -7,6 +7,18 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('all');
   const [viewingCard, setViewingCard] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', notes: '', subjectId: '', topicId: '' });
+
+  const saveEdit = () => {
+    if (!editForm.name.trim() || !editForm.subjectId || !editForm.topicId) return;
+    const newCards = state.subTopics.map(c => 
+      c.id === viewingCard.id ? { ...c, ...editForm } : c
+    );
+    saveData(null, null, newCards, null, null, null);
+    setViewingCard({ ...viewingCard, ...editForm });
+    setIsEditing(false);
+  };
 
   const deleteCard = (id) => {
     if(confirm('Are you sure you want to delete this card?')) {
@@ -163,37 +175,101 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
         const sub = state.subjects.find(s => s.id === viewingCard.subjectId) || {name: 'Unknown', color: '#fff'};
         const top = state.topics.find(t => t.id === viewingCard.topicId) || {name: 'Unknown'};
         return (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in fade-in" onClick={() => setViewingCard(null)}>
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in fade-in" onClick={() => { setViewingCard(null); setIsEditing(false); }}>
             <div 
               className="glass-panel p-10 rounded-[2rem] w-full max-w-2xl max-h-[85vh] overflow-y-auto custom-scrollbar border border-white/20 shadow-2xl relative"
               onClick={e => e.stopPropagation()}
             >
               <button 
                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-muted hover:text-white"
-                onClick={() => setViewingCard(null)}
+                onClick={() => { setViewingCard(null); setIsEditing(false); }}
               >
                 ✕
               </button>
               
-              <div className="flex gap-3 mb-8 items-center border-b border-white/10 pb-6">
-                <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${sub.color}`}}>{sub.name}</span>
-                <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{top.name}</span>
-                <span className={`ml-auto badge badge-${viewingCard.status}`}>{viewingCard.status}</span>
-              </div>
-              
-              <h3 className="text-3xl font-display text-white mb-6 leading-tight">{viewingCard.name}</h3>
-              
-              <div className="bg-black/30 p-6 rounded-2xl border border-white/5">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-muted mb-4">Notes & Details</h4>
-                <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">
-                  {viewingCard.notes || <span className="text-white/40 italic">No additional notes provided.</span>}
+              {isEditing ? (
+                <div className="space-y-4 pr-6">
+                  <h3 className="text-2xl font-display text-white mb-6">Edit Card</h3>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Subject</label>
+                      <select 
+                        value={editForm.subjectId} 
+                        onChange={e => {
+                          const newSubId = e.target.value;
+                          const firstTopic = state.topics.find(t => t.subjectId === newSubId);
+                          setEditForm({...editForm, subjectId: newSubId, topicId: firstTopic ? firstTopic.id : ''});
+                        }}
+                        className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                      >
+                        {state.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Topic</label>
+                      <select 
+                        value={editForm.topicId} 
+                        onChange={e => setEditForm({...editForm, topicId: e.target.value})}
+                        className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                      >
+                        {state.topics.filter(t => t.subjectId === editForm.subjectId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Card Name</label>
+                    <input 
+                      value={editForm.name} 
+                      onChange={e => setEditForm({...editForm, name: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Notes</label>
+                    <textarea 
+                      value={editForm.notes} 
+                      onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white h-32 focus:outline-none focus:border-primary/50 transition-colors custom-scrollbar"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button onClick={() => setIsEditing(false)} className="px-5 py-2.5 rounded-xl font-medium text-muted hover:bg-white/5 transition-colors">Cancel</button>
+                    <button onClick={saveEdit} className="px-5 py-2.5 rounded-xl font-medium bg-primary text-white hover:bg-primary/90 transition-colors">Save Changes</button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex gap-3 mb-8 items-center border-b border-white/10 pb-6 pr-8">
+                    <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${sub.color}`}}>{sub.name}</span>
+                    <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{top.name}</span>
+                    <span className={`ml-auto badge badge-${viewingCard.status}`}>{viewingCard.status}</span>
+                    <button 
+                      onClick={() => {
+                        setEditForm({ name: viewingCard.name, notes: viewingCard.notes || '', subjectId: viewingCard.subjectId, topicId: viewingCard.topicId });
+                        setIsEditing(true);
+                      }}
+                      className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                      title="Edit Card"
+                    >
+                      <Edit size={16} />
+                    </button>
+                  </div>
+                  
+                  <h3 className="text-3xl font-display text-white mb-6 leading-tight pr-6">{viewingCard.name}</h3>
+                  
+                  <div className="bg-black/30 p-6 rounded-2xl border border-white/5">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted mb-4">Notes & Details</h4>
+                    <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">
+                      {viewingCard.notes || <span className="text-white/40 italic">No additional notes provided.</span>}
+                    </div>
+                  </div>
 
-              <div className="mt-8 flex justify-between text-xs text-muted font-medium uppercase tracking-widest">
-                <span>Created: {viewingCard.createdAt || 'Unknown'}</span>
-                <span>Next Review: {viewingCard.nextReview}</span>
-              </div>
+                  <div className="mt-8 flex justify-between text-xs text-muted font-medium uppercase tracking-widest">
+                    <span>Created: {viewingCard.createdAt || 'Unknown'}</span>
+                    <span>Next Review: {viewingCard.nextReview}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         );
