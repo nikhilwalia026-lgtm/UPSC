@@ -100,7 +100,11 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const filtered = state.subTopics.filter(c => {
     if (filterSub !== 'all' && c.subjectId !== filterSub) return false;
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
-    if (filterDate && filterDate !== 'all' && c.createdAt !== filterDate) return false;
+    if (filterDate && filterDate !== 'all') {
+      const start = new Date(filterDate);
+      const cardDate = new Date(c.createdAt || 0);
+      if (cardDate < start) return false;
+    }
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
