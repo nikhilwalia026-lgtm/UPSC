@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function DatePicker({ selectedDate, onSelectDate, placeholder = "Select date..." }) {
+export default function DatePicker({ selectedDate, onSelectDate, placeholder = "Select date...", allowPast = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(selectedDate ? new Date(selectedDate) : new Date());
   const dropdownRef = useRef(null);
@@ -45,20 +45,24 @@ export default function DatePicker({ selectedDate, onSelectDate, placeholder = "
       <button 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-white text-left flex justify-between items-center hover:bg-white/5 transition-colors focus:outline-none focus:border-primary/50 font-medium"
+        className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white text-left flex items-center hover:bg-white/5 transition-colors focus:outline-none focus:border-primary/50 font-medium h-[50px]"
       >
-        <span className={selectedDate ? 'text-white' : 'text-muted'}>{selectedDate || placeholder}</span>
-        <span className="text-muted opacity-70">📅</span>
+        <span className={selectedDate ? 'text-white truncate' : 'text-muted truncate'}>{selectedDate || placeholder}</span>
       </button>
+      {selectedDate ? (
+        <button type="button" onClick={(e) => { e.stopPropagation(); onSelectDate(''); setIsOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors z-10">✕</button>
+      ) : (
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted opacity-70 pointer-events-none">📅</span>
+      )}
 
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, height: 0, scale: 0.95 }}
-            animate={{ opacity: 1, height: 'auto', scale: 1 }}
-            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="mt-3 glass-panel bg-[#1a1b26]/95 backdrop-blur-2xl p-4 rounded-2xl w-[280px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none mx-auto overflow-hidden"
+            className="absolute top-[calc(100%+8px)] right-0 sm:left-0 mt-0 z-[100] glass-panel bg-[#1a1b26]/95 backdrop-blur-2xl p-4 rounded-2xl w-[280px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none"
           >
             <div className="flex justify-between items-center mb-4 px-1 relative z-10">
               <button type="button" onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-primary/20 transition-colors text-muted hover:text-white border border-white/5">&larr;</button>
@@ -79,7 +83,7 @@ export default function DatePicker({ selectedDate, onSelectDate, placeholder = "
                 const iso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                 const isSelected = selectedDate === iso;
                 const isToday = todayIso === iso;
-                const isPast = iso < todayIso;
+                const isPast = !allowPast && iso < todayIso;
 
                 return (
                   <button 
