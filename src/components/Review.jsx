@@ -110,10 +110,15 @@ export default function Review({ state, saveData, setView }) {
     saveData(null, null, newSubTopics, null, newStreak, newHistory);
 
     setIsFlipped(false);
-    if (currentIndex + 1 >= queue.length) {
+    
+    // Remove the rated card from the session queue
+    const newQueue = queue.filter((_, i) => i !== currentIndex);
+    setQueue(newQueue);
+    
+    if (newQueue.length === 0) {
       setIsComplete(true);
-    } else {
-      setCurrentIndex(currentIndex + 1);
+    } else if (currentIndex >= newQueue.length) {
+      setCurrentIndex(0);
     }
   };
 
@@ -126,8 +131,14 @@ export default function Review({ state, saveData, setView }) {
       } else if (isFlipped && sessionMode === 'sm2' && ['1','2','3','4'].includes(e.key)) {
         const keyMap = { '1': 1, '2': 3, '3': 4, '4': 5 };
         rateCard(keyMap[e.key]);
-      } else if (isFlipped && sessionMode === 'custom' && (e.code === 'Space' || e.code === 'Enter' || e.key === 'ArrowRight')) {
+      } else if (isFlipped && sessionMode === 'custom' && (e.code === 'Space' || e.code === 'Enter')) {
         nextCustomCard();
+      } else if (e.key === 'ArrowRight') {
+        setCurrentIndex(prev => Math.min(prev + 1, queue.length - 1));
+        setIsFlipped(false);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentIndex(prev => Math.max(prev - 1, 0));
+        setIsFlipped(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -321,13 +332,33 @@ export default function Review({ state, saveData, setView }) {
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col items-center py-6">
-      <div className="w-full flex justify-between items-center text-muted mb-8 px-2">
+      <div className="w-full flex flex-wrap justify-between items-center gap-4 text-muted mb-8 px-2">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-white font-bold text-sm">
             {currentIndex + 1}
           </div>
           <span className="text-sm">of {queue.length} cards in queue</span>
         </div>
+        
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setCurrentIndex(Math.max(currentIndex - 1, 0)); setIsFlipped(false); }} 
+            disabled={currentIndex === 0}
+            className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 hover:text-white border border-white/5"
+            title="Previous Card (Left Arrow)"
+          >
+            &larr; Prev
+          </button>
+          <button 
+            onClick={() => { setCurrentIndex(Math.min(currentIndex + 1, queue.length - 1)); setIsFlipped(false); }} 
+            disabled={currentIndex === queue.length - 1}
+            className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 hover:text-white border border-white/5"
+            title="Next Card (Right Arrow)"
+          >
+            Next &rarr;
+          </button>
+        </div>
+
         <button onClick={() => setIsSessionStarted(false)} className="text-sm hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Quit Session</button>
       </div>
       
