@@ -58,6 +58,11 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       if (!earliest) return card.nextReview;
       return card.nextReview < earliest ? card.nextReview : earliest;
     }, null);
+    
+    const earliestCreatedAt = cardsToMerge.reduce((earliest, card) => {
+      if (!earliest) return card.createdAt;
+      return card.createdAt < earliest ? card.createdAt : earliest;
+    }, null);
 
     const newCard = {
       id: Data.generateId(),
@@ -68,7 +73,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       interval: 1, repetitions: 0, easeFactor: 2.5,
       nextReview: earliestReview || Data.getTodayStr(),
       lastReview: null, lastRating: null, status: 'new',
-      createdAt: Data.getTodayStr()
+      createdAt: earliestCreatedAt || Data.getTodayStr()
     };
 
     // Keep cards that are NOT in selectedCards, and add the new merged card
