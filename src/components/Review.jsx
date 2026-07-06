@@ -17,6 +17,11 @@ export default function Review({ state, saveData, setView }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [forgottenText, setForgottenText] = useState('');
+
+  useEffect(() => {
+    setForgottenText('');
+  }, [currentIndex]);
 
   // Global due cards logic
   const getDueCards = () => {
@@ -94,6 +99,13 @@ export default function Review({ state, saveData, setView }) {
     const card = queue[currentIndex];
     const updatedCard = SM2.schedule(card, rating);
     
+    if (forgottenText.trim()) {
+      updatedCard.reviewHistory = [
+        ...(updatedCard.reviewHistory || []),
+        { date: Data.getTodayStr(), text: forgottenText.trim() }
+      ];
+    }
+    
     const newSubTopics = [...state.subTopics];
     const idx = newSubTopics.findIndex(st => st.id === card.id);
     if (idx > -1) newSubTopics[idx] = updatedCard;
@@ -126,6 +138,7 @@ export default function Review({ state, saveData, setView }) {
     if (!isSessionStarted || isComplete || queue.length === 0) return;
 
     const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (!isFlipped && (e.code === 'Space' || e.code === 'Enter')) {
         e.preventDefault(); setIsFlipped(true);
       } else if (isFlipped && sessionMode === 'sm2' && ['1','2','3','4'].includes(e.key)) {
@@ -398,6 +411,34 @@ export default function Review({ state, saveData, setView }) {
               <div className="whitespace-pre-wrap text-[15px] leading-relaxed border-t border-white/10 pt-6 text-white/90">
                 {card.notes || 'No extra notes provided.'}
               </div>
+              
+              {card.reviewHistory && card.reviewHistory.length > 0 && (
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-rose-400/80 mb-3 flex items-center gap-2">
+                    <span>⚠️</span> Previously Forgotten
+                  </h4>
+                  <ul className="space-y-2">
+                    {card.reviewHistory.map((item, i) => (
+                      <li key={i} className="text-[13px] bg-rose-500/10 text-rose-200 px-3 py-2.5 rounded-lg border border-rose-500/20 leading-relaxed">
+                        <span className="opacity-50 mr-2 font-mono text-[11px] bg-black/20 px-1.5 py-0.5 rounded">[{item.date}]</span> 
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-white/10">
+               <input 
+                 type="text" 
+                 value={forgottenText} 
+                 onChange={e => setForgottenText(e.target.value)} 
+                 placeholder="Topics forgotten this time? (optional)" 
+                 className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white text-sm focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all placeholder:text-muted"
+                 onClick={e => e.stopPropagation()}
+                 onKeyDown={e => e.stopPropagation()}
+               />
             </div>
           </div>
         </motion.div>

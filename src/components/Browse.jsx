@@ -368,6 +368,22 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                     </div>
                   </div>
 
+                  {viewingCard.reviewHistory && viewingCard.reviewHistory.length > 0 && (
+                    <div className="bg-rose-500/5 p-6 rounded-2xl border border-rose-500/10 mt-6">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-rose-400/80 mb-4 flex items-center gap-2">
+                        <span>⚠️</span> Previously Forgotten Topics
+                      </h4>
+                      <ul className="space-y-2">
+                        {viewingCard.reviewHistory.map((item, i) => (
+                          <li key={i} className="text-[13px] bg-rose-500/10 text-rose-200 px-3 py-2.5 rounded-lg border border-rose-500/20 leading-relaxed">
+                            <span className="opacity-50 mr-2 font-mono text-[11px] bg-black/20 px-1.5 py-0.5 rounded">[{item.date}]</span> 
+                            {item.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   <div className="mt-8 flex justify-between text-xs text-muted font-medium uppercase tracking-widest">
                     <span>Created: {viewingCard.createdAt || 'Unknown'}</span>
                     <span>Next Review: {viewingCard.nextReview}</span>
