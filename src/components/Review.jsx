@@ -99,14 +99,33 @@ export default function Review({ state, saveData, setView }) {
     const card = queue[currentIndex];
     const updatedCard = SM2.schedule(card, rating);
     
+    let newSubTopics = [...state.subTopics];
+    
     if (forgottenText.trim()) {
+      const todayStr = Data.getTodayStr();
       updatedCard.reviewHistory = [
         ...(updatedCard.reviewHistory || []),
-        { date: Data.getTodayStr(), text: forgottenText.trim() }
+        { date: todayStr, text: forgottenText.trim() }
       ];
+
+      // Create a new card for each line in the forgotten text
+      const forgottenLines = forgottenText.split('\n').map(line => line.trim()).filter(line => line);
+      forgottenLines.forEach(line => {
+        const newCard = {
+          id: Data.generateId(),
+          subjectId: card.subjectId,
+          topicId: card.topicId,
+          name: line,
+          notes: `Created from forgotten topics on ${todayStr} during review of "${card.name}"`,
+          interval: 1, repetitions: 0, easeFactor: 2.5,
+          nextReview: todayStr,
+          lastReview: null, lastRating: null, status: 'new',
+          createdAt: todayStr
+        };
+        newSubTopics.push(newCard);
+      });
     }
     
-    const newSubTopics = [...state.subTopics];
     const idx = newSubTopics.findIndex(st => st.id === card.id);
     if (idx > -1) newSubTopics[idx] = updatedCard;
 
@@ -430,12 +449,11 @@ export default function Review({ state, saveData, setView }) {
             </div>
             
             <div className="mt-4 pt-4 border-t border-white/10">
-               <input 
-                 type="text" 
+               <textarea 
                  value={forgottenText} 
                  onChange={e => setForgottenText(e.target.value)} 
-                 placeholder="Topics forgotten this time? (optional)" 
-                 className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white text-sm focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all placeholder:text-muted"
+                 placeholder="Topics forgotten this time? (one per line, optional)" 
+                 className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white text-sm focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all placeholder:text-muted resize-y min-h-[60px]"
                  onClick={e => e.stopPropagation()}
                  onKeyDown={e => e.stopPropagation()}
                />
