@@ -88,6 +88,7 @@ export default function Review({ state, saveData, setView }) {
 
   const nextCustomCard = () => {
     setIsFlipped(false);
+    setForgottenText('');
     if (currentIndex + 1 >= queue.length) {
       setIsComplete(true);
     } else {
@@ -141,6 +142,7 @@ export default function Review({ state, saveData, setView }) {
     saveData(null, null, newSubTopics, null, newStreak, newHistory);
 
     setIsFlipped(false);
+    setForgottenText('');
     
     // Remove the rated card from the session queue
     const newQueue = queue.filter((_, i) => i !== currentIndex);
