@@ -18,10 +18,16 @@ export default function Review({ state, saveData, setView }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [forgottenText, setForgottenText] = useState('');
+  const [confidence, setConfidence] = useState(50);
 
   useEffect(() => {
     setForgottenText('');
-  }, [currentIndex]);
+    if (queue[currentIndex]) {
+      setConfidence(queue[currentIndex].confidence || 50);
+    } else {
+      setConfidence(50);
+    }
+  }, [currentIndex, queue]);
 
   // Global due cards logic
   const getDueCards = () => {
@@ -99,6 +105,7 @@ export default function Review({ state, saveData, setView }) {
   const rateCard = (rating) => {
     const card = queue[currentIndex];
     const updatedCard = SM2.schedule(card, rating);
+    updatedCard.confidence = parseInt(confidence, 10);
     
     let newSubTopics = [...state.subTopics];
     
@@ -450,7 +457,27 @@ export default function Review({ state, saveData, setView }) {
               )}
             </div>
             
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-4">
+               <div>
+                 <div className="flex justify-between items-center mb-2">
+                   <label className="text-xs font-bold uppercase tracking-widest text-muted">Confidence Level</label>
+                   <span className="text-sm font-bold text-white">{confidence}%</span>
+                 </div>
+                 <input 
+                   type="range" 
+                   min="0" 
+                   max="100" 
+                   step="5"
+                   value={confidence} 
+                   onChange={e => setConfidence(e.target.value)}
+                   className="w-full accent-primary cursor-pointer"
+                   onClick={e => e.stopPropagation()}
+                 />
+                 {card.confidence !== undefined && (
+                   <p className="text-[10px] text-muted text-right mt-1">Previous Confidence: {card.confidence}%</p>
+                 )}
+               </div>
+
                <textarea 
                  value={forgottenText} 
                  onChange={e => setForgottenText(e.target.value)} 
