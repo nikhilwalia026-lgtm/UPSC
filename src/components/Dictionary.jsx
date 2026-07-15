@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Data } from '../lib/data';
-import { Search, Plus, Trash2, Edit, X, BookA } from 'lucide-react';
+import { Data, SM2 } from '../lib/data';
+import { Search, Plus, Trash2, Edit, X, BookA, Play } from 'lucide-react';
 
 export default function Dictionary({ state, saveData }) {
   const { vocab = [] } = state;
@@ -16,6 +16,67 @@ export default function Dictionary({ state, saveData }) {
     antonyms: '',
     example: ''
   });
+
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const getDueWords = () => {
+    const today = Data.getTodayStr();
+    let q = [];
+    q.push(...vocab.filter(v => v.status === 'difficult'));
+    q.push(...vocab.filter(v => (v.nextReview || today) <= today && v.status !== 'new' && v.status !== 'difficult'));
+    q.push(...vocab.filter(v => v.status === 'new' || !v.status));
+    return [...new Map(q.map(item => [item.id, item])).values()];
+  };
+
+  const startReview = () => {
+    const q = getDueWords();
+    if (q.length === 0) {
+      alert("No words due for review today!");
+      return;
+    }
+    // Ensure all words have default SM2 properties if they are older
+    const sanitizedQueue = q.map(v => ({
+      ...v,
+      interval: v.interval || 1,
+      repetitions: v.repetitions || 0,
+      easeFactor: v.easeFactor || 2.5,
+      nextReview: v.nextReview || Data.getTodayStr(),
+      status: v.status || 'new'
+    }));
+    
+    setReviewQueue(sanitizedQueue);
+    setReviewIndex(0);
+    setIsFlipped(false);
+    setIsReviewing(true);
+  };
+
+  const rateWord = (rating) => {
+    const word = reviewQueue[reviewIndex];
+    const updatedWord = SM2.schedule(word, rating);
+    
+    const newVocab = [...vocab];
+    const idx = newVocab.findIndex(v => v.id === word.id);
+    if (idx > -1) {
+      newVocab[idx] = updatedWord;
+    } else {
+      newVocab.push(updatedWord);
+    }
+    
+    saveData(null, null, null, null, null, null, newVocab);
+    
+    setIsFlipped(false);
+    const newQueue = reviewQueue.filter((_, i) => i !== reviewIndex);
+    setReviewQueue(newQueue);
+    
+    if (newQueue.length === 0) {
+      setIsReviewing(false);
+    } else if (reviewIndex >= newQueue.length) {
+      setReviewIndex(0);
+    }
+  };
 
   const filteredVocab = vocab.filter(v => 
     v.word.toLowerCase().includes(search.toLowerCase()) || 
@@ -35,6 +96,9 @@ export default function Dictionary({ state, saveData }) {
       newVocab.push({
         id: Data.generateId(),
         ...formData,
+        interval: 1, repetitions: 0, easeFactor: 2.5,
+        nextReview: Data.getTodayStr(),
+        lastReview: null, lastRating: null, status: 'new',
         createdAt: Data.getTodayStr()
       });
     }
@@ -65,6 +129,96 @@ export default function Dictionary({ state, saveData }) {
     }
   };
 
+  if (isReviewing && reviewQueue.length > 0) {
+    const word = reviewQueue[reviewIndex];
+    return (
+      <div className="max-w-3xl mx-auto flex flex-col items-center py-6">
+        <div className="w-full flex justify-between items-center mb-8 px-2">
+          <div className="flex items-center gap-4 text-muted">
+            <div className="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-white font-bold text-sm">
+              {reviewIndex + 1}
+            </div>
+            <span className="text-sm">of {reviewQueue.length} words in queue</span>
+          </div>
+          <button onClick={() => setIsReviewing(false)} className="text-sm hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Quit Session</button>
+        </div>
+
+        <div className="w-full h-[400px] perspective-1000 mb-10 cursor-pointer group" onClick={() => !isFlipped && setIsFlipped(true)}>
+          <motion.div 
+            className="relative w-full h-full transform-style-3d transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            animate={{ rotateY: isFlipped ? 180 : 0 }}
+          >
+            {/* Front */}
+            <div className="absolute w-full h-full backface-hidden glass-panel rounded-[2rem] p-10 flex flex-col group-hover:border-white/20 group-hover:shadow-2xl transition-all duration-300">
+              <div className="flex gap-3 mb-auto">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-lg">Dictionary Review</span>
+              </div>
+              <div className="text-center my-auto px-4">
+                <h2 className="text-5xl font-display leading-tight">{word.word}</h2>
+              </div>
+              <div className="text-center text-muted text-sm mt-auto">
+                <span className="animate-pulse">Tap to reveal meaning</span>
+              </div>
+            </div>
+            
+            {/* Back */}
+            <div className="absolute w-full h-full backface-hidden rotate-y-180 glass-panel rounded-[2rem] p-10 flex flex-col">
+              <div className="flex gap-3 mb-6">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-lg">Dictionary Review</span>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                <h3 className="text-3xl text-gradient font-display mb-4">{word.word}</h3>
+                <p className="text-lg text-white/90 italic mb-6">{word.meaning}</p>
+                
+                <div className="space-y-4 pt-4 border-t border-white/10 text-sm">
+                  {word.synonyms && (
+                    <div><span className="text-muted font-bold uppercase tracking-widest text-[11px] block mb-1">Synonyms</span><span className="text-emerald-400">{word.synonyms}</span></div>
+                  )}
+                  {word.antonyms && (
+                    <div><span className="text-muted font-bold uppercase tracking-widest text-[11px] block mb-1">Antonyms</span><span className="text-rose-400">{word.antonyms}</span></div>
+                  )}
+                  {word.example && (
+                    <div className="bg-white/5 p-4 rounded-xl"><span className="text-muted font-bold uppercase tracking-widest text-[11px] block mb-2">Example</span><span className="text-white/80">"{word.example}"</span></div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        <AnimatePresence>
+          {isFlipped && (
+            <motion.div initial={{opacity: 0, y: 30}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: 30}} className="w-full flex flex-col gap-5 glass-panel p-6 rounded-[2rem]">
+              <h4 className="text-center text-white/70 text-sm font-medium uppercase tracking-widest">Rate Your Recall</h4>
+              <div className="flex flex-wrap md:flex-nowrap gap-3 justify-between">
+                {[
+                  {key: '1', val: 1, label: 'Difficult', color: 'hover:bg-rose-500/10 hover:border-rose-500/50 hover:text-rose-400'},
+                  {key: '2', val: 3, label: 'Learning', color: 'hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400'},
+                  {key: '3', val: 4, label: 'Review', color: 'hover:bg-teal-500/10 hover:border-teal-500/50 hover:text-teal-400'},
+                  {key: '4', val: 5, label: 'Mastered', color: 'hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400'}
+                ].map(btn => {
+                  const nextInterval = SM2.schedule({ ...word, interval: word.interval||1, repetitions: word.repetitions||0, easeFactor: word.easeFactor||2.5 }, btn.val).interval;
+                  const intervalStr = nextInterval === 1 ? '< 1d' : `${nextInterval}d`;
+                  return (
+                  <button 
+                    key={btn.val} onClick={() => rateWord(btn.val)}
+                    className={`flex-1 min-w-[20%] md:min-w-0 flex flex-col items-center p-4 bg-black/20 border border-white/5 rounded-xl transition-all duration-200 group ${btn.color}`}
+                  >
+                    <span className="text-2xl font-display font-bold mb-1">{btn.key}</span>
+                    <span className="text-[11px] uppercase tracking-wider text-muted group-hover:text-inherit transition-colors mb-1.5">{btn.label}</span>
+                    <span className="text-[10px] font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded-full">{intervalStr}</span>
+                  </button>
+                )})}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  const dueWordsCount = getDueWords().length;
+
   return (
     <motion.div initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} className="max-w-6xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -75,17 +229,26 @@ export default function Dictionary({ state, saveData }) {
           </h2>
           <p className="text-muted text-sm">Build your English vocabulary for CSAT and Mains.</p>
         </div>
-        <button 
-          onClick={() => {
-            setIsAdding(true);
-            setEditingId(null);
-            setFormData({ word: '', meaning: '', synonyms: '', antonyms: '', example: '' });
-          }} 
-          className="btn btn-primary flex items-center gap-2 px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-shadow"
-        >
-          <Plus size={20} />
-          Add Word
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={startReview} 
+            className="btn bg-white/5 hover:bg-white/10 text-white flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 transition-all"
+          >
+            <Play size={20} />
+            Review ({dueWordsCount} Due)
+          </button>
+          <button 
+            onClick={() => {
+              setIsAdding(true);
+              setEditingId(null);
+              setFormData({ word: '', meaning: '', synonyms: '', antonyms: '', example: '' });
+            }} 
+            className="btn btn-primary flex items-center gap-2 px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-shadow"
+          >
+            <Plus size={20} />
+            Add Word
+          </button>
+        </div>
       </div>
 
       <div className="relative z-10">
