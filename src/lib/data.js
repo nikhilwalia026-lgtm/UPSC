@@ -4,7 +4,8 @@ export const KEYS = {
   subTopics: 'subtopics',
   streak:    'streak',
   settings:  'settings',
-  history:   'history'
+  history:   'history',
+  vocab:     'vocab'
 };
 
 export const Data = {

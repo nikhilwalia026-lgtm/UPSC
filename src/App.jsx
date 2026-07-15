@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings } from 'lucide-react';
+import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings, BookType } from 'lucide-react';
 import { Data, KEYS, SM2 } from './lib/data';
 
 import Dashboard from './components/Dashboard';
@@ -7,6 +7,7 @@ import Review from './components/Review';
 import AddContent from './components/AddContent';
 import Browse from './components/Browse';
 import Stats from './components/Stats';
+import Dictionary from './components/Dictionary';
 import SettingsModal from './components/SettingsModal';
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
   const [settings, setSettings] = useState({ examDate: '2026-05-31', newCardsPerDay: 5 });
   const [history, setHistory] = useState({});
   const [streak, setStreak] = useState({ count: 0, lastDate: null });
+  const [vocab, setVocab] = useState([]);
+
   const loadData = () => {
     const loadedSubjects = Data.get(KEYS.subjects, []);
     setSubjects(loadedSubjects);
@@ -41,6 +44,8 @@ function App() {
     checkAndUpdateStreak(loadedStreak);
     const loadedHistory = Data.get(KEYS.history, {});
     setHistory(loadedHistory);
+    const loadedVocab = Data.get(KEYS.vocab, []);
+    setVocab(loadedVocab);
   };
 
   useEffect(() => {
@@ -61,13 +66,14 @@ function App() {
     setStreak(currentStreak);
   };
 
-  const saveData = (newSubjects, newTopics, newSubTopics, newSettings, newStreak, newHistory) => {
+  const saveData = (newSubjects, newTopics, newSubTopics, newSettings, newStreak, newHistory, newVocab) => {
     if (newSubjects) { setSubjects(newSubjects); Data.set(KEYS.subjects, newSubjects); }
     if (newTopics) { setTopics(newTopics); Data.set(KEYS.topics, newTopics); }
     if (newSubTopics) { setSubTopics(newSubTopics); Data.set(KEYS.subTopics, newSubTopics); }
     if (newSettings) { setSettings(newSettings); Data.set(KEYS.settings, newSettings); }
     if (newStreak) { setStreak(newStreak); Data.set(KEYS.streak, newStreak); }
     if (newHistory) { setHistory(newHistory); Data.set(KEYS.history, newHistory); }
+    if (newVocab) { setVocab(newVocab); Data.set(KEYS.vocab, newVocab); }
   };
 
   let navItems = [
@@ -76,6 +82,7 @@ function App() {
     { id: 'add', icon: <PlusSquare size={20} />, label: 'Add Content' },
     { id: 'browse', icon: <LayoutList size={20} />, label: 'Browse' },
     { id: 'stats', icon: <BarChart2 size={20} />, label: 'Stats' },
+    { id: 'dictionary', icon: <BookType size={20} />, label: 'Dictionary' },
   ];
 
   return (
@@ -122,6 +129,7 @@ function App() {
         {view === 'add' && <AddContent state={{subjects, topics, subTopics}} saveData={saveData} showToast={showToast} />}
         {view === 'browse' && <Browse state={{subjects, topics, subTopics}} saveData={saveData} filterStatus={browseFilterStatus} setFilterStatus={setBrowseFilterStatus} />}
         {view === 'stats' && <Stats state={{subjects, topics, subTopics, history}} />}
+        {view === 'dictionary' && <Dictionary state={{vocab}} saveData={saveData} />}
       </main>
 
       {/* Toast Notification */}
