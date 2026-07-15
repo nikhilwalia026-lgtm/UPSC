@@ -105,12 +105,17 @@ export default function Review({ state, saveData, setView }) {
   const rateCard = (rating) => {
     const card = queue[currentIndex];
     const updatedCard = SM2.schedule(card, rating);
+    const todayStr = Data.getTodayStr();
+    
     updatedCard.confidence = parseInt(confidence, 10);
+    updatedCard.confidenceHistory = [
+      ...(updatedCard.confidenceHistory || []),
+      { date: todayStr, confidence: parseInt(confidence, 10) }
+    ];
     
     let newSubTopics = [...state.subTopics];
     
     if (forgottenText.trim()) {
-      const todayStr = Data.getTodayStr();
       updatedCard.reviewHistory = [
         ...(updatedCard.reviewHistory || []),
         { date: todayStr, text: forgottenText.trim() }
@@ -473,8 +478,15 @@ export default function Review({ state, saveData, setView }) {
                    className="w-full accent-primary cursor-pointer"
                    onClick={e => e.stopPropagation()}
                  />
-                 {card.confidence !== undefined && (
-                   <p className="text-[10px] text-muted text-right mt-1">Previous Confidence: {card.confidence}%</p>
+                 {card.confidenceHistory && card.confidenceHistory.length > 0 && (
+                   <div className="flex flex-wrap gap-2 mt-3 justify-end items-center">
+                     <span className="text-[10px] text-muted uppercase tracking-widest mr-1">History:</span>
+                     {card.confidenceHistory.map((ch, i) => (
+                       <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
+                         {ch.date}: <strong className="text-white">{ch.confidence}%</strong>
+                       </span>
+                     ))}
+                   </div>
                  )}
                </div>
 
