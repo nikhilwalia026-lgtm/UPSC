@@ -19,9 +19,27 @@ export default function Review({ state, saveData, setView }) {
   const [isComplete, setIsComplete] = useState(false);
   const [forgottenText, setForgottenText] = useState('');
   const [confidence, setConfidence] = useState(50);
+  const [timeSpent, setTimeSpent] = useState(0);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  useEffect(() => {
+    let timer;
+    if (isSessionStarted && !isComplete && queue.length > 0) {
+      timer = setInterval(() => {
+        setTimeSpent(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isSessionStarted, isComplete, queue.length, currentIndex]);
 
   useEffect(() => {
     setForgottenText('');
+    setTimeSpent(0);
     if (queue[currentIndex]) {
       setConfidence(queue[currentIndex].confidence || 50);
     } else {
@@ -111,6 +129,10 @@ export default function Review({ state, saveData, setView }) {
     updatedCard.confidenceHistory = [
       ...(updatedCard.confidenceHistory || []),
       { date: todayStr, confidence: parseInt(confidence, 10) }
+    ];
+    updatedCard.timeSpentHistory = [
+      ...(updatedCard.timeSpentHistory || []),
+      { date: todayStr, time: timeSpent }
     ];
     
     let newSubTopics = [...state.subTopics];
@@ -420,7 +442,12 @@ export default function Review({ state, saveData, setView }) {
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
               </div>
-              {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
+              <div className="flex gap-2 items-center">
+                {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
+                <span className="text-xs font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-white/90 flex items-center gap-1 shadow-inner">
+                  ⏱ {formatTime(timeSpent)}
+                </span>
+              </div>
             </div>
             <div className="text-center my-auto px-4">
               <h2 className="text-4xl md:text-5xl font-display leading-tight">{card.name}</h2>
@@ -437,7 +464,12 @@ export default function Review({ state, saveData, setView }) {
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
               </div>
-              {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
+              <div className="flex gap-2 items-center">
+                {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
+                <span className="text-xs font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-white/90 flex items-center gap-1 shadow-inner">
+                  ⏱ {formatTime(timeSpent)}
+                </span>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
               <h3 className="text-2xl text-gradient font-display mb-6">{card.name}</h3>
@@ -479,13 +511,25 @@ export default function Review({ state, saveData, setView }) {
                    onClick={e => e.stopPropagation()}
                  />
                  {card.confidenceHistory && card.confidenceHistory.length > 0 && (
-                   <div className="flex flex-wrap gap-2 mt-3 justify-end items-center">
-                     <span className="text-[10px] text-muted uppercase tracking-widest mr-1">History:</span>
-                     {card.confidenceHistory.map((ch, i) => (
-                       <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
-                         {ch.date}: <strong className="text-white">{ch.confidence}%</strong>
-                       </span>
-                     ))}
+                   <div className="flex flex-col gap-2 mt-3 items-end">
+                     <div className="flex flex-wrap gap-2 justify-end items-center">
+                       <span className="text-[10px] text-muted uppercase tracking-widest mr-1">Confidence History:</span>
+                       {card.confidenceHistory.map((ch, i) => (
+                         <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
+                           {ch.date}: <strong className="text-white">{ch.confidence}%</strong>
+                         </span>
+                       ))}
+                     </div>
+                     {card.timeSpentHistory && card.timeSpentHistory.length > 0 && (
+                       <div className="flex flex-wrap gap-2 justify-end items-center">
+                         <span className="text-[10px] text-muted uppercase tracking-widest mr-1">Time History:</span>
+                         {card.timeSpentHistory.map((th, i) => (
+                           <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
+                             {th.date}: <strong className="text-white">{formatTime(th.time)}</strong>
+                           </span>
+                         ))}
+                       </div>
+                     )}
                    </div>
                  )}
                </div>
