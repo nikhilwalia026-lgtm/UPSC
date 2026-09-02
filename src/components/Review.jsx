@@ -564,23 +564,9 @@ export default function Review({ state, saveData, setView }) {
             </div>
             
             <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-4">
-               <div>
-                 <div className="flex justify-between items-center mb-2">
-                   <label className="text-xs font-bold uppercase tracking-widest text-muted">Confidence Level</label>
-                   <span className="text-sm font-bold text-white">{confidence}%</span>
-                 </div>
-                 <input 
-                   type="range" 
-                   min="0" 
-                   max="100" 
-                   step="5"
-                   value={confidence} 
-                   onChange={e => setConfidence(e.target.value)}
-                   className="w-full accent-primary cursor-pointer"
-                   onClick={e => e.stopPropagation()}
-                 />
-                 {card.confidenceHistory && card.confidenceHistory.length > 0 && (
-                   <div className="flex flex-col gap-2 mt-3 items-end">
+               {((card.confidenceHistory && card.confidenceHistory.length > 0) || (card.timeSpentHistory && card.timeSpentHistory.length > 0)) && (
+                 <div className="flex flex-col gap-2 items-end">
+                   {card.confidenceHistory && card.confidenceHistory.length > 0 && (
                      <div className="flex flex-wrap gap-2 justify-end items-center">
                        <span className="text-[10px] text-muted uppercase tracking-widest mr-1">Confidence History:</span>
                        {card.confidenceHistory.map((ch, i) => (
@@ -589,19 +575,19 @@ export default function Review({ state, saveData, setView }) {
                          </span>
                        ))}
                      </div>
-                     {card.timeSpentHistory && card.timeSpentHistory.length > 0 && (
-                       <div className="flex flex-wrap gap-2 justify-end items-center">
-                         <span className="text-[10px] text-muted uppercase tracking-widest mr-1">Time History:</span>
-                         {card.timeSpentHistory.map((th, i) => (
-                           <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
-                             {th.date}: <strong className="text-white">{formatTime(th.time)}</strong>
-                           </span>
-                         ))}
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </div>
+                   )}
+                   {card.timeSpentHistory && card.timeSpentHistory.length > 0 && (
+                     <div className="flex flex-wrap gap-2 justify-end items-center">
+                       <span className="text-[10px] text-muted uppercase tracking-widest mr-1">Time History:</span>
+                       {card.timeSpentHistory.map((th, i) => (
+                         <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/70 shadow-sm">
+                           {th.date}: <strong className="text-white">{formatTime(th.time)}</strong>
+                         </span>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               )}
 
                <textarea 
                  value={forgottenText} 
