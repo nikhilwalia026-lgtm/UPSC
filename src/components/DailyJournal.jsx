@@ -104,7 +104,10 @@ export default function DailyJournal({ state, saveData, showToast }) {
 
     saveData(null, null, null, null, null, null, null, newLogs);
 
-    if (showToast) showToast(`Study Log for ${selectedDate} saved! 📖`);
+    const savedDate = selectedDate;
+    resetForm();
+
+    if (showToast) showToast(`Study Log for ${savedDate} saved! Ready for new entry. 📖`);
   };
 
   const handleEditLog = (log) => {
