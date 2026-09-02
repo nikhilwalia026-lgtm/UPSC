@@ -4,9 +4,10 @@ import DatePicker from './ui/DatePicker';
 
 export default function SettingsModal({ settings, saveData, onClose, state, showToast }) {
   const [examDate, setExamDate] = useState(settings.examDate || '');
+  const [autoStartTimer, setAutoStartTimer] = useState(settings.autoStartTimer ?? false);
 
   const handleSave = () => {
-    saveData(null, null, null, { examDate }, null, null);
+    saveData(null, null, null, { ...settings, examDate, autoStartTimer }, null, null);
     onClose();
   };
 
@@ -60,6 +61,19 @@ export default function SettingsModal({ settings, saveData, onClose, state, show
             <div className="flex justify-center relative z-[100]">
               <DatePicker selectedDate={examDate} onSelectDate={setExamDate} placeholder="Select target exam date..." />
             </div>
+          </div>
+
+          <div className="w-full flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/5">
+            <div>
+              <label className="block text-sm font-bold text-white mb-1">Auto-Start Card Timer</label>
+              <p className="text-xs text-muted">Automatically start the timer when a card is loaded during review.</p>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={autoStartTimer} 
+              onChange={e => setAutoStartTimer(e.target.checked)} 
+              className="accent-primary w-5 h-5 cursor-pointer rounded"
+            />
           </div>
         </div>
 

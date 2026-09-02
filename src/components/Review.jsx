@@ -20,6 +20,8 @@ export default function Review({ state, saveData, setView }) {
   const [forgottenText, setForgottenText] = useState('');
   const [confidence, setConfidence] = useState(50);
   const [timeSpent, setTimeSpent] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [autoStartTimer, setAutoStartTimer] = useState(state.settings?.autoStartTimer ?? false);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -27,25 +29,39 @@ export default function Review({ state, saveData, setView }) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleAutoStartToggle = (val) => {
+    setAutoStartTimer(val);
+    const currentSettings = state.settings || {};
+    const newSettings = { ...currentSettings, autoStartTimer: val };
+    saveData(null, null, null, newSettings, null, null);
+  };
+
+  useEffect(() => {
+    if (state.settings?.autoStartTimer !== undefined) {
+      setAutoStartTimer(state.settings.autoStartTimer);
+    }
+  }, [state.settings]);
+
   useEffect(() => {
     let timer;
-    if (isSessionStarted && !isComplete && queue.length > 0) {
+    if (isSessionStarted && !isComplete && queue.length > 0 && isTimerRunning) {
       timer = setInterval(() => {
         setTimeSpent(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isSessionStarted, isComplete, queue.length, currentIndex]);
+  }, [isSessionStarted, isComplete, queue.length, currentIndex, isTimerRunning]);
 
   useEffect(() => {
     setForgottenText('');
     setTimeSpent(0);
+    setIsTimerRunning(autoStartTimer);
     if (queue[currentIndex]) {
       setConfidence(queue[currentIndex].confidence || 50);
     } else {
       setConfidence(50);
     }
-  }, [currentIndex, queue]);
+  }, [currentIndex, queue, autoStartTimer]);
 
   // Global due cards logic
   const getDueCards = () => {
@@ -194,7 +210,10 @@ export default function Review({ state, saveData, setView }) {
 
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (!isFlipped && (e.code === 'Space' || e.code === 'Enter')) {
+      if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setIsTimerRunning(prev => !prev);
+      } else if (!isFlipped && (e.code === 'Space' || e.code === 'Enter')) {
         e.preventDefault(); setIsFlipped(true);
       } else if (isFlipped && sessionMode === 'sm2' && ['1','2','3','4'].includes(e.key)) {
         const keyMap = { '1': 1, '2': 3, '3': 4, '4': 5 };
@@ -398,6 +417,43 @@ export default function Review({ state, saveData, setView }) {
   const subject = state.subjects.find(s => s.id === card.subjectId) || {name: 'Unknown', color: '#fff'};
   const topic = state.topics.find(t => t.id === card.topicId) || {name: 'Unknown'};
 
+  const renderTimerButton = () => (
+    <button 
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsTimerRunning(prev => !prev);
+      }}
+      className={`text-xs font-mono px-3 py-1.5 rounded-xl flex items-center gap-2 transition-all duration-200 shadow-md cursor-pointer select-none border ${
+        isTimerRunning
+          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+          : timeSpent > 0
+          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+          : 'bg-primary/20 border-primary/40 text-primary-light hover:bg-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.25)] animate-pulse'
+      }`}
+      title={isTimerRunning ? "Click to Pause Timer (Shortcut: T)" : "Click to Start Timer (Shortcut: T)"}
+    >
+      {isTimerRunning ? (
+        <>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span>⏱ {formatTime(timeSpent)}</span>
+          <span className="text-[10px] font-sans uppercase font-bold tracking-wider opacity-80 bg-black/30 px-1.5 py-0.5 rounded">Pause</span>
+        </>
+      ) : (
+        <>
+          <span className="text-xs">▶</span>
+          <span>{timeSpent > 0 ? `⏱ ${formatTime(timeSpent)}` : 'Start Timer'}</span>
+          <span className="text-[10px] font-sans uppercase font-bold tracking-wider opacity-90 bg-white/10 px-1.5 py-0.5 rounded">
+            {timeSpent > 0 ? 'Resume' : 'Start'}
+          </span>
+        </>
+      )}
+    </button>
+  );
+
   return (
     <div className="max-w-3xl mx-auto flex flex-col items-center py-6">
       <div className="w-full flex flex-wrap justify-between items-center gap-4 text-muted mb-8 px-2">
@@ -427,7 +483,18 @@ export default function Review({ state, saveData, setView }) {
           </button>
         </div>
 
-        <button onClick={() => setIsSessionStarted(false)} className="text-sm hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Quit Session</button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-muted cursor-pointer hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 select-none" title="Toggle whether timer starts automatically on card load">
+            <input 
+              type="checkbox"
+              checked={autoStartTimer}
+              onChange={(e) => handleAutoStartToggle(e.target.checked)}
+              className="accent-primary rounded cursor-pointer"
+            />
+            <span>Auto-start Timer</span>
+          </label>
+          <button onClick={() => setIsSessionStarted(false)} className="text-sm hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Quit Session</button>
+        </div>
       </div>
       
       <div className="w-full h-[450px] perspective-1000 mb-10 cursor-pointer group" onClick={() => !isFlipped && setIsFlipped(true)}>
@@ -444,16 +511,20 @@ export default function Review({ state, saveData, setView }) {
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
-                <span className="text-xs font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-white/90 flex items-center gap-1 shadow-inner">
-                  ⏱ {formatTime(timeSpent)}
-                </span>
+                {renderTimerButton()}
               </div>
             </div>
             <div className="text-center my-auto px-4">
               <h2 className="text-4xl md:text-5xl font-display leading-tight">{card.name}</h2>
             </div>
-            <div className="text-center text-muted text-sm mt-auto flex items-center justify-center gap-2">
+            <div className="text-center text-muted text-sm mt-auto flex items-center justify-center gap-3">
               <span className="animate-pulse">Tap or press Space to reveal</span>
+              {!isTimerRunning && timeSpent === 0 && (
+                <>
+                  <span className="opacity-30">•</span>
+                  <span className="text-xs text-primary-light font-medium">Press 'T' or click ▶ to start timer</span>
+                </>
+              )}
             </div>
           </div>
           
@@ -466,9 +537,7 @@ export default function Review({ state, saveData, setView }) {
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
-                <span className="text-xs font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-white/90 flex items-center gap-1 shadow-inner">
-                  ⏱ {formatTime(timeSpent)}
-                </span>
+                {renderTimerButton()}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
