@@ -5,7 +5,8 @@ export const KEYS = {
   streak:    'streak',
   settings:  'settings',
   history:   'history',
-  vocab:     'vocab'
+  vocab:     'vocab',
+  dailyLogs: 'daily_logs'
 };
 
 export const Data = {

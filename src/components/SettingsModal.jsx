@@ -27,7 +27,7 @@ export default function SettingsModal({ settings, saveData, onClose, state, show
       try {
         const data = JSON.parse(ev.target.result);
         if (data.subjects && data.topics && data.subTopics) {
-          saveData(data.subjects, data.topics, data.subTopics, data.settings, data.streak, data.history);
+          saveData(data.subjects, data.topics, data.subTopics, data.settings, data.streak, data.history, data.vocab, data.dailyLogs);
           showToast('Data imported successfully! Reloading...');
           setTimeout(() => window.location.reload(), 1500);
         } else {

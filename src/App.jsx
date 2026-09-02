@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings, BookType } from 'lucide-react';
+import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings, BookType, Notebook } from 'lucide-react';
 import { Data, KEYS, SM2 } from './lib/data';
 
 import Dashboard from './components/Dashboard';
@@ -8,6 +8,7 @@ import AddContent from './components/AddContent';
 import Browse from './components/Browse';
 import Stats from './components/Stats';
 import Dictionary from './components/Dictionary';
+import DailyJournal from './components/DailyJournal';
 import SettingsModal from './components/SettingsModal';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
   const [history, setHistory] = useState({});
   const [streak, setStreak] = useState({ count: 0, lastDate: null });
   const [vocab, setVocab] = useState([]);
+  const [dailyLogs, setDailyLogs] = useState([]);
 
   const loadData = () => {
     const loadedSubjects = Data.get(KEYS.subjects, []);
@@ -46,6 +48,8 @@ function App() {
     setHistory(loadedHistory);
     const loadedVocab = Data.get(KEYS.vocab, []);
     setVocab(loadedVocab);
+    const loadedDailyLogs = Data.get(KEYS.dailyLogs, []);
+    setDailyLogs(loadedDailyLogs);
   };
 
   useEffect(() => {
@@ -66,7 +70,7 @@ function App() {
     setStreak(currentStreak);
   };
 
-  const saveData = (newSubjects, newTopics, newSubTopics, newSettings, newStreak, newHistory, newVocab) => {
+  const saveData = (newSubjects, newTopics, newSubTopics, newSettings, newStreak, newHistory, newVocab, newDailyLogs) => {
     if (newSubjects) { setSubjects(newSubjects); Data.set(KEYS.subjects, newSubjects); }
     if (newTopics) { setTopics(newTopics); Data.set(KEYS.topics, newTopics); }
     if (newSubTopics) { setSubTopics(newSubTopics); Data.set(KEYS.subTopics, newSubTopics); }
@@ -74,10 +78,12 @@ function App() {
     if (newStreak) { setStreak(newStreak); Data.set(KEYS.streak, newStreak); }
     if (newHistory) { setHistory(newHistory); Data.set(KEYS.history, newHistory); }
     if (newVocab) { setVocab(newVocab); Data.set(KEYS.vocab, newVocab); }
+    if (newDailyLogs) { setDailyLogs(newDailyLogs); Data.set(KEYS.dailyLogs, newDailyLogs); }
   };
 
   let navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: 'Dashboard' },
+    { id: 'journal', icon: <Notebook size={20} />, label: 'Daily Journal' },
     { id: 'review', icon: <BookOpen size={20} />, label: 'Review' },
     { id: 'add', icon: <PlusSquare size={20} />, label: 'Add Content' },
     { id: 'browse', icon: <LayoutList size={20} />, label: 'Browse' },
@@ -125,6 +131,7 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 relative overflow-y-auto p-4 md:p-10 pb-24 md:pb-10">
         {view === 'dashboard' && <Dashboard state={{subjects, topics, subTopics, settings, streak}} setView={setView} navigateToBrowse={(status) => { setBrowseFilterStatus(status); setView('browse'); }} />}
+        {view === 'journal' && <DailyJournal state={{subjects, dailyLogs}} saveData={saveData} showToast={showToast} />}
         {view === 'review' && <Review state={{subjects, topics, subTopics, settings, streak, history}} saveData={saveData} setView={setView} />}
         {view === 'add' && <AddContent state={{subjects, topics, subTopics}} saveData={saveData} showToast={showToast} />}
         {view === 'browse' && <Browse state={{subjects, topics, subTopics}} saveData={saveData} filterStatus={browseFilterStatus} setFilterStatus={setBrowseFilterStatus} />}
