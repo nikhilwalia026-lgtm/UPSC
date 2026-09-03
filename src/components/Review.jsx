@@ -505,9 +505,12 @@ export default function Review({ state, saveData, setView }) {
           {/* Front */}
           <div className={`absolute w-full h-full backface-hidden glass-panel rounded-[2rem] p-10 flex flex-col transition-all duration-300 ${card.status === 'difficult' ? 'border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.15)]' : 'group-hover:border-white/20 group-hover:shadow-2xl'}`}>
             <div className="flex gap-3 mb-auto items-center justify-between">
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center flex-wrap">
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
+                <span className="text-xs px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/70 font-mono flex items-center gap-1 shadow-inner" title="Card Creation Date">
+                  📅 {card.createdAt || Data.getTodayStr()}
+                </span>
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
@@ -531,9 +534,12 @@ export default function Review({ state, saveData, setView }) {
           {/* Back */}
           <div className={`absolute w-full h-full backface-hidden rotate-y-180 glass-panel rounded-[2rem] p-10 flex flex-col ${card.status === 'difficult' ? 'border-rose-500/40' : ''}`}>
             <div className="flex gap-3 mb-6 items-center justify-between">
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center flex-wrap">
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
+                <span className="text-xs px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/70 font-mono flex items-center gap-1 shadow-inner" title="Card Creation Date">
+                  📅 {card.createdAt || Data.getTodayStr()}
+                </span>
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}

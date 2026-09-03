@@ -212,6 +212,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                 <th className="p-5 whitespace-nowrap">Chapter</th>
                 <th className="p-5 w-full">Card Name</th>
                 <th className="p-5 whitespace-nowrap">Status</th>
+                <th className="p-5 whitespace-nowrap">Created</th>
                 <th className="p-5 whitespace-nowrap">Schedule</th>
                 <th className="p-5 whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -244,6 +245,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                     <td className="p-5 whitespace-nowrap">
                       <span className={`badge badge-${card.status}`}>{card.status}</span>
                     </td>
+                    <td className="p-5 text-sm text-muted font-mono whitespace-nowrap">{card.createdAt || Data.getTodayStr()}</td>
                     <td className="p-5 text-sm whitespace-nowrap">
                       {card.status === 'new' ? <span className="text-muted italic">-</span> : getRelativeTime(card.nextReview)}
                     </td>
@@ -261,7 +263,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center">
+                  <td colSpan={8} className="p-12 text-center">
                     <div className="flex flex-col items-center justify-center text-muted">
                       <Search size={32} className="mb-4 opacity-20" />
                       <p className="text-lg">No cards found</p>
