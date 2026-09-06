@@ -8,6 +8,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('all');
   const [filterMode, setFilterMode] = useState('all'); // 'all', 'recall', 'understanding'
+  const [timeframe, setTimeframe] = useState('all'); // 'all', 'today', '7days', '30days', '60days', 'custom'
   const [filterDate, setFilterDate] = useState('all');
   const [viewingCard, setViewingCard] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -126,11 +127,28 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       const cardMode = c.recallType || 'recall';
       if (cardMode !== filterMode) return false;
     }
-    if (filterDate && filterDate !== 'all') {
-      const start = new Date(filterDate);
-      const cardDate = new Date(c.createdAt || 0);
-      if (cardDate < start) return false;
+
+    if (timeframe !== 'all') {
+      if (timeframe === 'custom') {
+        if (filterDate && filterDate !== 'all') {
+          const start = new Date(filterDate);
+          const cardDate = new Date(c.createdAt || 0);
+          if (cardDate < start) return false;
+        }
+      } else {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        const cardDate = new Date(c.createdAt || Data.getTodayStr());
+        const diffMs = Math.max(0, today - cardDate);
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (timeframe === 'today' && diffDays > 1) return false;
+        if (timeframe === '7days' && diffDays > 7) return false;
+        if (timeframe === '30days' && diffDays > 30) return false;
+        if (timeframe === '60days' && diffDays > 60) return false;
+      }
     }
+
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -152,6 +170,47 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       <div>
         <h2 className="text-4xl font-display mb-2">Browse Library</h2>
         <p className="text-muted text-sm">Search, filter, and manage all your flashcards across subjects.</p>
+      </div>
+
+      {/* Creation Timeframe Quick Filter Pills */}
+      <div className="glass-panel p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-white/10">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted uppercase font-bold tracking-widest px-3 flex items-center gap-1">
+            <span>📅</span> Created:
+          </span>
+          {[
+            { id: 'all', label: 'All Time', icon: '🌐' },
+            { id: 'today', label: 'Created Today', icon: '⚡' },
+            { id: '7days', label: 'Last 7 Days (Week)', icon: '🗓️' },
+            { id: '30days', label: 'Last 30 Days (Month)', icon: '📆' },
+            { id: '60days', label: 'Last 60 Days (2 Months)', icon: '⏳' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setTimeframe(tab.id);
+                if (tab.id !== 'custom') setFilterDate('all');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
+                timeframe === tab.id
+                  ? 'bg-gradient-to-r from-primary to-accent text-white shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-primary/50 scale-[1.02]'
+                  : 'bg-black/30 text-white/70 hover:bg-white/10 hover:text-white border border-white/5'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        
+        {timeframe !== 'all' && (
+          <button 
+            onClick={() => { setTimeframe('all'); setFilterDate('all'); }}
+            className="text-xs text-muted hover:text-rose-400 transition-colors px-3 py-1 bg-white/5 rounded-lg border border-white/5"
+          >
+            Clear Timeframe
+          </button>
+        )}
       </div>
 
       {/* Search and Filters Toolbar */}
@@ -211,7 +270,10 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
           <div className="relative flex-1 lg:w-40 z-20">
             <DatePicker 
               selectedDate={filterDate === 'all' ? '' : filterDate}
-              onSelectDate={(date) => setFilterDate(date || 'all')}
+              onSelectDate={(date) => {
+                setFilterDate(date || 'all');
+                if (date) setTimeframe('custom');
+              }}
               placeholder="Filter by Date..."
               allowPast={true}
             />

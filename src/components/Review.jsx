@@ -103,6 +103,34 @@ export default function Review({ state, saveData, setView }) {
     setIsSessionStarted(true);
   };
 
+  const startCreationTimeframeSession = (tf) => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    const q = state.subTopics.filter(st => {
+      const cardDate = new Date(st.createdAt || Data.getTodayStr());
+      const diffMs = Math.max(0, today - cardDate);
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (tf === 'today') return diffDays <= 1;
+      if (tf === '7days') return diffDays <= 7;
+      if (tf === '30days') return diffDays <= 30;
+      if (tf === '60days') return diffDays <= 60;
+      return true;
+    });
+
+    if (q.length === 0) {
+      alert("No cards found created in this timeframe!");
+      return;
+    }
+    setSessionMode('custom');
+    setQueue(q);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsComplete(false);
+    setIsSessionStarted(true);
+  };
+
   const scheduleRevision = () => {
     if (!cramSubId || !cramChapId || !cramDate) return;
     const newRev = {
@@ -341,6 +369,50 @@ export default function Review({ state, saveData, setView }) {
                 >
                   Schedule for Later
                 </button>
+              </div>
+            </div>
+
+            {/* Creation Timeframe Review Box */}
+            <div className="glass-panel p-8 rounded-3xl max-w-2xl mx-auto relative overflow-hidden border border-white/10">
+              <h3 className="text-2xl font-display mb-2 flex items-center gap-2">
+                <span>📅</span> Review by Creation Timeframe
+              </h3>
+              <p className="text-muted text-sm mb-6 leading-relaxed">Instantly review all flashcards you created over a specific recent timeframe.</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { id: 'today', title: 'Created Today', icon: '⚡', color: 'from-amber-500/20 to-orange-500/20 text-amber-300' },
+                  { id: '7days', title: 'Last 7 Days', icon: '🗓️', color: 'from-primary/20 to-indigo-500/20 text-primary-light' },
+                  { id: '30days', title: 'Last 30 Days', icon: '📆', color: 'from-violet-500/20 to-purple-500/20 text-violet-300' },
+                  { id: '60days', title: 'Last 60 Days', icon: '⏳', color: 'from-emerald-500/20 to-teal-500/20 text-emerald-300' },
+                ].map(item => {
+                  const today = new Date();
+                  today.setHours(23, 59, 59, 999);
+                  const count = state.subTopics.filter(st => {
+                    const cardDate = new Date(st.createdAt || Data.getTodayStr());
+                    const diffMs = Math.max(0, today - cardDate);
+                    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                    if (item.id === 'today') return diffDays <= 1;
+                    if (item.id === '7days') return diffDays <= 7;
+                    if (item.id === '30days') return diffDays <= 30;
+                    if (item.id === '60days') return diffDays <= 60;
+                    return true;
+                  }).length;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => startCreationTimeframeSession(item.id)}
+                      className={`p-4 rounded-2xl bg-gradient-to-br ${item.color} border border-white/10 hover:border-white/30 hover:scale-105 transition-all text-left flex flex-col justify-between group cursor-pointer`}
+                    >
+                      <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{item.icon}</div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm leading-tight mb-1">{item.title}</h4>
+                        <span className="text-xs text-white/60 font-medium">{count} card{count !== 1 ? 's' : ''}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
