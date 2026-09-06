@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings, BookType, Notebook } from 'lucide-react';
+import { Home, BookOpen, PlusSquare, LayoutList, BarChart2, Settings, BookType } from 'lucide-react';
 import { Data, KEYS, SM2 } from './lib/data';
 
 import Dashboard from './components/Dashboard';
@@ -8,7 +8,6 @@ import AddContent from './components/AddContent';
 import Browse from './components/Browse';
 import Stats from './components/Stats';
 import Dictionary from './components/Dictionary';
-import DailyJournal from './components/DailyJournal';
 import SettingsModal from './components/SettingsModal';
 
 function App() {
@@ -83,7 +82,6 @@ function App() {
 
   let navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-    { id: 'journal', icon: <Notebook size={20} />, label: 'Daily Journal' },
     { id: 'review', icon: <BookOpen size={20} />, label: 'Review' },
     { id: 'add', icon: <PlusSquare size={20} />, label: 'Add Content' },
     { id: 'browse', icon: <LayoutList size={20} />, label: 'Browse' },
@@ -131,7 +129,6 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 relative overflow-y-auto p-4 md:p-10 pb-24 md:pb-10">
         {view === 'dashboard' && <Dashboard state={{subjects, topics, subTopics, settings, streak}} setView={setView} navigateToBrowse={(status) => { setBrowseFilterStatus(status); setView('browse'); }} />}
-        {view === 'journal' && <DailyJournal state={{subjects, dailyLogs}} saveData={saveData} showToast={showToast} />}
         {view === 'review' && <Review state={{subjects, topics, subTopics, settings, streak, history}} saveData={saveData} setView={setView} />}
         {view === 'add' && <AddContent state={{subjects, topics, subTopics}} saveData={saveData} showToast={showToast} />}
         {view === 'browse' && <Browse state={{subjects, topics, subTopics}} saveData={saveData} filterStatus={browseFilterStatus} setFilterStatus={setBrowseFilterStatus} />}
