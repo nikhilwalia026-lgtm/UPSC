@@ -7,14 +7,31 @@ import DatePicker from './ui/DatePicker';
 export default function Browse({ state, saveData, filterStatus = 'all', setFilterStatus }) {
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('all');
+  const [filterMode, setFilterMode] = useState('all'); // 'all', 'recall', 'understanding'
   const [filterDate, setFilterDate] = useState('all');
   const [viewingCard, setViewingCard] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', notes: '', subjectId: '', topicId: '' });
+  const [editForm, setEditForm] = useState({ name: '', notes: '', subjectId: '', topicId: '', recallType: 'recall' });
 
   const [selectedCards, setSelectedCards] = useState(new Set());
   const [isMerging, setIsMerging] = useState(false);
   const [mergeForm, setMergeForm] = useState({ name: '', notes: '', subjectId: '', topicId: '' });
+
+  const toggleRecallType = (cardId, e) => {
+    if (e) e.stopPropagation();
+    const newSubTopics = state.subTopics.map(st => {
+      if (st.id === cardId) {
+        const nextType = (st.recallType === 'understanding') ? 'recall' : 'understanding';
+        return { ...st, recallType: nextType };
+      }
+      return st;
+    });
+    saveData(null, null, newSubTopics, null, null, null);
+    if (viewingCard && viewingCard.id === cardId) {
+      const nextType = (viewingCard.recallType === 'understanding') ? 'recall' : 'understanding';
+      setViewingCard({ ...viewingCard, recallType: nextType });
+    }
+  };
 
   const toggleSelection = (id, e) => {
     e.stopPropagation();
@@ -105,6 +122,10 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
   const filtered = state.subTopics.filter(c => {
     if (filterSub !== 'all' && c.subjectId !== filterSub) return false;
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+    if (filterMode !== 'all') {
+      const cardMode = c.recallType || 'recall';
+      if (cardMode !== filterMode) return false;
+    }
     if (filterDate && filterDate !== 'all') {
       const start = new Date(filterDate);
       const cardDate = new Date(c.createdAt || 0);
@@ -174,6 +195,19 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
             </select>
           </div>
 
+          <div className="relative flex-1 lg:w-40">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={16} />
+            <select
+              className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+              value={filterMode}
+              onChange={e => setFilterMode(e.target.value)}
+            >
+              <option value="all">All Modes</option>
+              <option value="recall">⚡ Active Recall</option>
+              <option value="understanding">🧠 Needs Understanding</option>
+            </select>
+          </div>
+
           <div className="relative flex-1 lg:w-40 z-20">
             <DatePicker 
               selectedDate={filterDate === 'all' ? '' : filterDate}
@@ -211,6 +245,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                 <th className="p-5 whitespace-nowrap">Subject</th>
                 <th className="p-5 whitespace-nowrap">Chapter</th>
                 <th className="p-5 w-full">Card Name</th>
+                <th className="p-5 whitespace-nowrap">Mode</th>
                 <th className="p-5 whitespace-nowrap">Status</th>
                 <th className="p-5 whitespace-nowrap">Created</th>
                 <th className="p-5 whitespace-nowrap">Schedule</th>
@@ -222,6 +257,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                 const sub = state.subjects.find(s => s.id === card.subjectId);
                 const top = state.topics.find(t => t.id === card.topicId);
                 if (!sub || !top) return null;
+                const isUnderstanding = card.recallType === 'understanding';
                 return (
                   <motion.tr
                     initial={{ opacity: 0, y: 10 }}
@@ -242,6 +278,24 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                     </td>
                     <td className="p-5 text-sm text-muted whitespace-nowrap">{top.name}</td>
                     <td className="p-5 font-semibold text-white/90 text-[15px]">{card.name}</td>
+                    <td className="p-5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => toggleRecallType(card.id, e)}
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                          isUnderstanding
+                            ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 hover:bg-violet-500/30'
+                            : 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                        }`}
+                        title="Click to toggle: Needs Understanding vs Active Recall"
+                      >
+                        {isUnderstanding ? (
+                          <><span>🧠</span><span>Understanding</span></>
+                        ) : (
+                          <><span>⚡</span><span>Active Recall</span></>
+                        )}
+                      </button>
+                    </td>
                     <td className="p-5 whitespace-nowrap">
                       <span className={`badge badge-${card.status}`}>{card.status}</span>
                     </td>
@@ -263,7 +317,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center">
+                  <td colSpan={9} className="p-12 text-center">
                     <div className="flex flex-col items-center justify-center text-muted">
                       <Search size={32} className="mb-4 opacity-20" />
                       <p className="text-lg">No cards found</p>
@@ -280,6 +334,7 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
       {viewingCard && (() => {
         const sub = state.subjects.find(s => s.id === viewingCard.subjectId) || { name: 'Unknown', color: '#fff' };
         const top = state.topics.find(t => t.id === viewingCard.topicId) || { name: 'Unknown' };
+        const isUnderstanding = viewingCard.recallType === 'understanding';
         return (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in fade-in" onClick={() => { setViewingCard(null); setIsEditing(false); }}>
             <div
@@ -323,6 +378,17 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                     </div>
                   </div>
                   <div>
+                    <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Card Mode</label>
+                    <select
+                      value={editForm.recallType || 'recall'}
+                      onChange={e => setEditForm({ ...editForm, recallType: e.target.value })}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                    >
+                      <option value="recall">⚡ Active Recall</option>
+                      <option value="understanding">🧠 Needs Understanding</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-xs text-muted font-bold uppercase tracking-widest mb-2 block">Card Name</label>
                     <input
                       value={editForm.name}
@@ -345,13 +411,25 @@ export default function Browse({ state, saveData, filterStatus = 'all', setFilte
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-3 mb-8 items-center border-b border-white/10 pb-6 pr-8">
+                  <div className="flex gap-3 mb-8 items-center border-b border-white/10 pb-6 pr-8 flex-wrap">
                     <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{ borderLeft: `3px solid ${sub.color}` }}>{sub.name}</span>
                     <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{top.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleRecallType(viewingCard.id, e)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                        isUnderstanding
+                          ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 hover:bg-violet-500/30'
+                          : 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                      }`}
+                      title="Click to toggle card mode"
+                    >
+                      {isUnderstanding ? '🧠 Needs Understanding' : '⚡ Active Recall'}
+                    </button>
                     <span className={`ml-auto badge badge-${viewingCard.status}`}>{viewingCard.status}</span>
                     <button
                       onClick={() => {
-                        setEditForm({ name: viewingCard.name, notes: viewingCard.notes || '', subjectId: viewingCard.subjectId, topicId: viewingCard.topicId });
+                        setEditForm({ name: viewingCard.name, notes: viewingCard.notes || '', subjectId: viewingCard.subjectId, topicId: viewingCard.topicId, recallType: viewingCard.recallType || 'recall' });
                         setIsEditing(true);
                       }}
                       className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors"

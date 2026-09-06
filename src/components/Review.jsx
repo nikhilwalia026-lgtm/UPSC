@@ -417,6 +417,47 @@ export default function Review({ state, saveData, setView }) {
   const subject = state.subjects.find(s => s.id === card.subjectId) || {name: 'Unknown', color: '#fff'};
   const topic = state.topics.find(t => t.id === card.topicId) || {name: 'Unknown'};
 
+  const toggleRecallType = (e, cardId) => {
+    if (e) e.stopPropagation();
+    const cardToUpdate = state.subTopics.find(st => st.id === cardId);
+    if (!cardToUpdate) return;
+    const currentType = cardToUpdate.recallType || 'recall';
+    const newType = currentType === 'understanding' ? 'recall' : 'understanding';
+    const newSubTopics = state.subTopics.map(st => 
+      st.id === cardId ? { ...st, recallType: newType } : st
+    );
+    setQueue(prevQueue => prevQueue.map(c => c.id === cardId ? { ...c, recallType: newType } : c));
+    saveData(null, null, newSubTopics, null, null, null);
+  };
+
+  const renderRecallTypeButton = (card) => {
+    const isUnderstanding = card.recallType === 'understanding';
+    return (
+      <button
+        type="button"
+        onClick={(e) => toggleRecallType(e, card.id)}
+        className={`text-xs font-medium px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all duration-200 shadow-md cursor-pointer select-none border ${
+          isUnderstanding
+            ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 hover:bg-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.25)]'
+            : 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+        }`}
+        title={isUnderstanding ? "Mode: Needs Understanding — Click to toggle to Active Recall" : "Mode: Active Recall — Click to toggle to Needs Understanding"}
+      >
+        {isUnderstanding ? (
+          <>
+            <span>🧠</span>
+            <span className="font-semibold">Needs Understanding</span>
+          </>
+        ) : (
+          <>
+            <span>⚡</span>
+            <span className="font-semibold">Active Recall</span>
+          </>
+        )}
+      </button>
+    );
+  };
+
   const renderTimerButton = () => (
     <button 
       type="button"
@@ -508,9 +549,7 @@ export default function Review({ state, saveData, setView }) {
               <div className="flex gap-3 items-center flex-wrap">
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
-                <span className="text-xs px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/70 font-mono flex items-center gap-1 shadow-inner" title="Card Creation Date">
-                  📅 {card.createdAt || Data.getTodayStr()}
-                </span>
+                {renderRecallTypeButton(card)}
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}
@@ -519,6 +558,15 @@ export default function Review({ state, saveData, setView }) {
             </div>
             <div className="text-center my-auto px-4">
               <h2 className="text-4xl md:text-5xl font-display leading-tight">{card.name}</h2>
+              {card.recallType === 'understanding' ? (
+                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-violet-300/80 bg-violet-500/10 border border-violet-500/20 px-3 py-1.5 rounded-full inline-block">
+                  🧠 Concept Card: Focus on deep understanding & explanation
+                </p>
+              ) : (
+                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-amber-300/80 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full inline-block">
+                  ⚡ Active Recall Card: Test memory before flipping
+                </p>
+              )}
             </div>
             <div className="text-center text-muted text-sm mt-auto flex items-center justify-center gap-3">
               <span className="animate-pulse">Tap or press Space to reveal</span>
@@ -537,9 +585,7 @@ export default function Review({ state, saveData, setView }) {
               <div className="flex gap-3 items-center flex-wrap">
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white font-medium" style={{borderLeft: `3px solid ${subject.color}`}}>{subject.name}</span>
                 <span className="text-xs px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-muted font-medium">{topic.name}</span>
-                <span className="text-xs px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/70 font-mono flex items-center gap-1 shadow-inner" title="Card Creation Date">
-                  📅 {card.createdAt || Data.getTodayStr()}
-                </span>
+                {renderRecallTypeButton(card)}
               </div>
               <div className="flex gap-2 items-center">
                 {sessionMode === 'custom' && <span className="text-[10px] uppercase font-bold tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">Cram Mode</span>}

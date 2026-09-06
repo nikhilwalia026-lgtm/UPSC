@@ -20,6 +20,7 @@ export default function AddContent({ state, saveData, showToast }) {
   const [cardTopicName, setCardTopicName] = useState('');
   const [cardSubTopicName, setCardSubTopicName] = useState('');
   const [cardNotes, setCardNotes] = useState('');
+  const [cardRecallType, setCardRecallType] = useState('recall'); // 'recall' or 'understanding'
   const [bulkText, setBulkText] = useState('');
 
   const colors = ['#6366f1', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
@@ -57,8 +58,8 @@ export default function AddContent({ state, saveData, showToast }) {
     showToast('Chapter deleted');
   };
 
-  const createCardObj = (sId, tId, name, notes) => ({
-    id: Data.generateId(), subjectId: sId, topicId: tId, name, notes,
+  const createCardObj = (sId, tId, name, notes, recallType = 'recall') => ({
+    id: Data.generateId(), subjectId: sId, topicId: tId, name, notes, recallType,
     interval: 1, repetitions: 0, easeFactor: 2.5, nextReview: Data.getTodayStr(),
     lastReview: null, lastRating: null, status: 'new', createdAt: Data.getTodayStr()
   });
@@ -71,7 +72,7 @@ export default function AddContent({ state, saveData, showToast }) {
     const combinedName = cardSubTopicName.trim() 
       ? `${cardTopicName.trim()} — ${cardSubTopicName.trim()}` 
       : cardTopicName.trim();
-    const newCard = createCardObj(cardSubId, cardChapterId, combinedName, cardNotes);
+    const newCard = createCardObj(cardSubId, cardChapterId, combinedName, cardNotes, cardRecallType);
     saveData(null, null, [...state.subTopics, newCard], null, null, null);
     setCardSubTopicName('');
     setCardNotes('');
@@ -84,7 +85,7 @@ export default function AddContent({ state, saveData, showToast }) {
       return;
     }
     const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l);
-    const newCards = lines.map(l => createCardObj(cardSubId, cardChapterId, l, ''));
+    const newCards = lines.map(l => createCardObj(cardSubId, cardChapterId, l, '', cardRecallType));
     saveData(null, null, [...state.subTopics, ...newCards], null, null, null);
     setBulkText('');
     showToast(`${newCards.length} cards added instantly!`);
@@ -140,6 +141,17 @@ export default function AddContent({ state, saveData, showToast }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 border-t border-white/10 pt-8">
                   <div className="space-y-4">
                     <h4 className="text-lg font-medium mb-2 text-white">Add Individual Content</h4>
+                    <div>
+                      <label className="text-xs text-muted font-bold uppercase tracking-widest mb-1.5 block">Default Card Mode</label>
+                      <select 
+                        className="input-field mb-0 text-sm" 
+                        value={cardRecallType} 
+                        onChange={e => setCardRecallType(e.target.value)}
+                      >
+                        <option value="recall">⚡ Active Recall (Memory Check)</option>
+                        <option value="understanding">🧠 Needs Understanding (Concept Revise)</option>
+                      </select>
+                    </div>
                     <input className="input-field mb-0" value={cardTopicName} onChange={e=>setCardTopicName(e.target.value)} placeholder="Topic (e.g. Fundamental Rights)" />
                     <input className="input-field mb-0" value={cardSubTopicName} onChange={e=>setCardSubTopicName(e.target.value)} placeholder="Optional: Sub-Topic / Question (e.g. Article 14)" />
                     <textarea className="input-field h-24 mb-0" value={cardNotes} onChange={e=>setCardNotes(e.target.value)} placeholder="Optional: Answer / Detailed Notes" />
